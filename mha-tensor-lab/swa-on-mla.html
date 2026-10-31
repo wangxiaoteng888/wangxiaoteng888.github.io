@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SWA：沿用 MLA 张量图，改用滑动窗口</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#263142;font:15px/1.65 'Segoe UI','Microsoft YaHei',sans-serif}a{color:#315d92}header{padding:18px 4vw;border-bottom:1px solid #dce1e8;background:white;display:flex;gap:20px;justify-content:space-between;font-size:13px}main{max-width:1560px;margin:auto;padding:30px 3vw 50px}h1{font-size:32px;margin:0 0 12px;line-height:1.3}h2{font-size:20px;margin:0 0 10px}p{margin:10px 0}.lead{max-width:1100px;color:#5d6878}.controls{position:sticky;top:0;z-index:3;display:flex;align-items:center;flex-wrap:wrap;gap:12px;background:#f6f7f9;padding:14px 0;border-bottom:1px solid #dce1e8;margin:20px 0 12px}button,select{font:inherit;padding:7px 11px;border:1px solid #cbd3df;background:white;border-radius:5px}button{cursor:pointer}button[aria-pressed=true]{background:#233e63;color:white;border-color:#233e63}a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid #c47736;outline-offset:3px}.controls .dl{margin-left:auto;font-size:13px}.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:#647083;margin:12px 0}.legend i{display:inline-block;width:24px;border-top:2px solid #50617a;vertical-align:middle;margin-right:7px}.legend .new{border-color:#238274}.legend .ids{border-color:#238274;border-top-style:dashed}.notice{border-left:3px solid #238274;background:#eaf7f2;padding:13px 17px;margin-bottom:15px}.viewport{background:white;border:1px solid #dce1e8;border-radius:8px;overflow:auto;max-height:84vh}.viewport svg{display:block;height:auto;margin:auto;width:100%;min-width:960px}.node{cursor:pointer;outline:none}.node:hover rect,.node:focus-visible rect,.node.active rect{stroke-width:3;stroke:#238274}.explain{margin-top:18px;padding:21px;background:white;border:1px solid #dce1e8;border-radius:8px;scroll-margin-top:85px}.explain code{font:14px Consolas,monospace;background:#eef2f6;padding:5px 9px;display:inline-block;white-space:pre-wrap}.explain p{max-width:1150px}.bottom{display:grid;grid-template-columns:1fr 1fr;gap:25px;margin-top:28px}.bottom section{border-top:2px solid #dce1e8;padding-top:18px}.bottom p{font-size:14px;color:#566171}.source{font-size:12px;color:#738093;margin-top:25px}.source a{margin-right:20px}@media(max-width:950px){.bottom{grid-template-columns:1fr}.controls{position:static}.controls .dl{margin-left:0}h1{font-size:27px}.viewport{max-height:78vh}}@media print{header,.controls,.legend,.explain,.bottom,.source{display:none}.viewport{max-height:none;border:0;overflow:visible}.viewport svg{min-width:0}main{padding:0}}
+.window-demo{background:white;border:1px solid #dce1e8;border-radius:8px;padding:16px 20px;margin:14px 0 20px}.demo-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.demo-controls label{display:flex;align-items:center;gap:8px}.demo-controls input{width:180px;accent-color:#238274}.demo-controls span,.small{font-size:12px;color:#6d7785}.token-strip{display:grid;grid-template-columns:repeat(32,minmax(0,1fr));gap:3px}.token{background:#e9edf1;color:#7c8794;border:1px solid #e9edf1;border-radius:3px;text-align:center;font:11px/23px Consolas,monospace}.token.on{background:#dcf2eb;border-color:#359582;color:#16634f}.token.future{background:white;border:1px dashed #b9c2ce;color:#a0a8b3}.token.current{outline:2px solid #16634f;font-weight:bold}@media(max-width:750px){.token-strip{grid-template-columns:repeat(16,minmax(0,1fr))}}</style><link rel="stylesheet" href="../assets/navigation.css">
+<script src="../assets/catalog.js?v=swa-csa-20261031" defer></script>
+<script src="../assets/navigation.js?v=discussion-20261031" defer></script>
+</head><body data-lab-page="swa-on-mla"><header><b>ATTENTION / 沿用 MLA 主链，改用 SWA</b><nav><a href="dsa-on-mla.html">打开原 DSA 图对照 ↗</a>　<a href="mla-flow.html">MLA</a></nav></header><main>
+<h1>同一条 MLA 主链，换成滑动窗口选位置。</h1>
+<p class="lead">从底部 input 向上读。蓝灰色沿用 DSA 图里的 MLA 张量；绿色分支只根据位置生成窗口，不再用 Indexer 评分或 Top-k。这是用于对照学习的 <b>MLA + 纯因果 SWA</b> 组合示意，不代表某个具体模型配置。</p>
+<div class="controls"><button id="sparse" aria-pressed="true">① 只计算窗口内 K/V</button><button id="masked" aria-pressed="false">② 对照：完整矩阵加窗口 mask</button><label>窗口 W <select id="k" aria-label="窗口大小"><option>1</option><option>3</option><option>16</option><option selected>32</option><option>64</option><option>128</option></select></label><label>图大小 <select id="zoom" aria-label="图大小"><option value="fit">适应宽度</option><option value="1500">1500 px</option><option value="1960">原尺寸</option></select></label><a class="dl" id="download" href="#" download="swa-on-mla.svg">下载当前 SVG ↓</a></div>
+<div class="legend"><span><i></i>原 MLA 张量流</span><span><i class="new"></i>SWA 窗口规则</span><span><i class="ids"></i>索引 / mask 控制</span><span>点击节点查看操作与形状</span></div><div class="notice" id="notice"></div>
+<section class="window-demo" aria-label="滑动窗口位置演示"><div class="demo-controls"><b>看一行 query 的选择</b><label>位置 t <input id="query" type="range" min="0" max="127" value="127" aria-label="query 位置"></label><output id="query-value">127</output><span>W 包含当前 token；编号从 0 开始</span></div><p id="window-summary" aria-live="polite"></p><div id="token-strip" class="token-strip"></div><p class="small">绿色：窗口内　灰色：太早、已在窗口外　虚线：未来 token。这里只改变观察的行，整图仍表示一次输入 128 个 token。</p></section>
+<div class="viewport" id="viewport"><div id="diagram"></div></div><section class="explain" id="explain" aria-live="polite"><h2 id="detail-title"></h2><code id="detail-shape"></code><p id="detail-body"></p></section>
+<div class="bottom"><section><h2>相对 DSA，具体换了什么？</h2><p>DSA：qr / input → Indexer Q、K、头权重 → index_scores → Top-k 编号。这里换成：<b>query 位置 t + 窗口 W → 起止位置 → window_indices</b>。同一行的所有主头共享这组位置；请求之间互不访问。</p><p>window_indices 是整数 token 位置，不是注意力分数，也不是物理 KV Cache block 编号。SWA 是另一种选择规则，不是在 DSA 后面再加一步。</p></section>
+<section><h2>真正的注意力分数仍然由 Q 和 K 算</h2><p>先按窗口选 K/V，再用原 q_states 与 selected_k 点积，除以 √192，屏蔽无效槽并做 softmax，最后对 selected_v 加权。W=32 时，主权重为 <b>(2,16,128,32)</b>，不是 index_weights。</p><p>第二种视图用完整 (2,16,128,128) 分数加窗口 mask 表达同一个规则；它不省已经算过的完整 QK。真正省计算需要内核只处理窗口内的位置。</p></section>
+<section><h2>窗口缓存：保留每个 token 的什么？</h2><p>沿用 MLA 时，每个保留 token 仍保存归一化的 <b>compressed_kv 512 维 + 已旋转 k_pe 64 维</b>。纯 SWA 解码可用最多 W 个位置的滚动缓冲，不需要 Indexer 的 index_k 缓存。</p><p>例如 W=32，处理 t=127 时使用 token 96～127；处理 t=128 时使用 97～128。逻辑位置继续递增，RoPE 仍用原位置，不能把循环槽位当作位置编号。是否能释放底层存储还取决于共享与运行时管理。</p></section>
+<section><h2>为什么图中还是 128 个 token？</h2><p>这是无旧前缀的一次性 prefill：要为全部 128 个 query 计算输出，所以投影结果有 T=128。缓存只保留窗口是逐步解码的保留策略，不意味着 prefill 一开始就丢掉前面 token。</p><p>selected_k / selected_v 的五维形状是按 query 选取的逻辑表示，内核可以直接按窗口访问，而不物化复制张量。前几行不足 W 个候选，用 −1 示意无效槽；必须屏蔽它，不能直接把 −1 当数组索引。</p></section></div>
+<div class="source"><a href="swa-on-mla-sparse.svg" target="_blank">窗口计算 SVG 整图 ↗</a><a href="swa-on-mla-sparse.png" target="_blank">PNG 整图 ↗</a><a href="swa-on-mla-masked.svg" target="_blank">mask 对照 SVG ↗</a><p>固定导出图使用 W=32、示例 t=127；下载当前 SVG 会保留你当前的选择。本例窗口定义为 max(0,t−W+1) ≤ s ≤ t；不同 API 对窗口参数的边界约定可能不同。主链维度沿用原教学图，纯 SWA 没有全局 / sink / DSA 补充分支。</p><a href="https://arxiv.org/html/2310.06825v1#S2" target="_blank" rel="noreferrer">SWA 与滚动缓存：Mistral 论文</a></div></main><script>
+const $=id=>document.getElementById(id);let mode='sparse',k=32,query=127,selected='topk',nodes=[],edges=[];
+const B=2,T=128,H=16,D=7168,DQ=1536,DC=512,DN=128,DR=64,DV=128;
+const dims=(...a)=>'('+a.join(', ')+')',m=()=>Math.min(k,T),esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+function N(id,name,x,y,shape,body,kind='base',w=180){nodes.push({id,name,x,y,w,h:64,shape,body,kind})}
+function E(from,to,path,op='',x=0,y=0,type='base'){edges.push({from,to,path,op,x,y,type})}
+function build(){nodes=[];edges=[];
+ N('input','input',680,2380,dims(B,T,D),'与你原图相同，两个序列，每个序列一次输入 128 个 token；这里没有旧前缀。');
+ N('qr','qr / query latent',220,2200,dims(B,T,DQ),'原图 input 到 q 的低秩中间结果：X × Wq_a，再做 RMSNorm。保留这个节点方便对照 DSA；SWA 没有从这里接出去的 Indexer 分支。它不是 KV Cache。','helper');
+ N('q','q',220,2000,dims(B,T,H*(DN+DR)),'qr 上投影：1536 → 16×192 = 3072。然后拆头，并把每头的 192 维切成 128 维 q_nope 与 64 维 q_pe。');
+ N('q_nope','q_nope',80,1800,dims(B,H,T,DN),'内容 Query。由 q 拆出来后不做 RoPE，参与内容点积。');
+ N('q_pe','q_pe',340,1800,dims(B,H,T,DR),'位置 Query。由 q 拆出后按各个 token 的原始位置做 RoPE。图中该节点表示已旋转的结果。');
+ N('q_states','q_states',220,1560,dims(B,H,T,DN+DR),'拼接 q_nope 与旋转后的 q_pe，得到每头 192 维的完整 Query。concat 后的点积等于内容点积加位置点积。');
+ N('kv_a','compressed_kv',900,2200,dims(B,T,DC+DR),'这就是你图中下面的 compressed_kv：联合投影结果，576=512+64。它会沿最后一维拆分；它不等于最终未经处理就直接写入缓存的内容。');
+ N('compressed','compressed_kv',1040,2000,dims(B,T,DC),'你图中上面的 compressed_kv：从 576 维中切出的 512 维部分，经过 RMSNorm 后，作为主压缩内容缓存保存。','cache');
+ N('k_pe','k_pe',780,2000,dims(B,T,DR),'从 576 维联合投影结果中切出的 64 维位置 Key。先做 RoPE，保存旋转后的 (2,128,64)，再按需要广播给主头。');
+ N('k_pe_heads','k_pe',780,1800,dims(B,H,T,DR),'已做 RoPE 的 k_pe 增加头轴，并广播给 16 个主头。缓存本身保留 (2,128,64)，不需要存 16 份。');
+ N('kv','kv',1040,1800,dims(B,H,T,DN+DV),'归一化的 compressed_kv 上投影到 16×256=4096 维，再 reshape 和 transpose。每头 256 维会切成 128 维 K_nope 与 128 维 Value。');
+ N('k_nope','k_nope',950,1560,dims(B,H,T,DN),'从 kv 的每头 256 维中切出前 128 维，作为内容 Key，不施加 RoPE。');
+ N('v','value_states',1190,1560,dims(B,H,T,DV),'从 kv 切出的 Value。最终与主 MLA 的注意力权重相乘。');
+ N('k_states','k_states',780,1340,dims(B,H,T,DN+DR),'拼接 k_nope 和广播后的旋转 k_pe，得到每头 192 维的完整 Key。');
+ E('input','qr','M710 2380 C710 2290 310 2345 310 2264','Wq_a + RMSNorm',410,2340);
+ E('qr','q','M310 2200 L310 2064','Wq_b',360,2150);
+ E('input','kv_a','M800 2380 C800 2310 990 2350 990 2264','Wkv_a：7168 → 576',1030,2340);
+ E('q','q_nope','M270 2000 C270 1930 170 1950 170 1864','reshape / split',160,1940);
+ E('q','q_pe','M350 2000 C350 1930 430 1950 430 1864','split + RoPE',450,1940);
+ E('q_nope','q_states','M170 1800 C170 1710 280 1720 280 1624');E('q_pe','q_states','M430 1800 C430 1700 340 1730 340 1624','concat',460,1710);
+ E('kv_a','compressed','M1030 2200 C1030 2120 1130 2160 1130 2064','split 512 + RMSNorm',1185,2140);
+ E('kv_a','k_pe','M950 2200 C950 2120 870 2150 870 2064','split 64',820,2135);
+ E('compressed','kv','M1130 2000 L1130 1864','Wkv_b + reshape / transpose',1130,1930);
+ E('k_pe','k_pe_heads','M870 2000 L870 1864','RoPE → 缓存 → 广播头',775,1980);
+ E('kv','k_nope','M1090 1800 C1090 1700 1040 1720 1040 1624','split 128',970,1710);
+ E('kv','v','M1170 1800 C1170 1700 1280 1720 1280 1624','split 128',1320,1710);
+ E('k_nope','k_states','M1040 1560 C1040 1460 920 1490 920 1404','concat',1050,1470);
+ E('k_pe_heads','k_states','M870 1800 C870 1650 820 1590 820 1404');
+ N('positions','query_positions',1450,2000,dims(B,T),'每条请求的逻辑 query 位置 [0,1,…,127]。这是位置元数据，不由 input 乘权重矩阵产生。','new',220);
+ N('window','window_size W',1740,2000,'标量：'+k,'固定窗口超参数。本页约定窗口包含当前 token；W=32 表示最近 31 个历史 token 加当前 token。','new',190);
+ N('bounds','window_bounds',1500,1700,dims(B,T,2),'每行计算 start=max(0,t−W+1)，end=t。最后一维的两个整数表示起止位置，不是两个注意力头。','new',220);
+ N('topk','window_indices',1500,1340,dims(B,T,m()),'每行依次列出 start 到 t 的位置，再补无效槽到 m=min(W,T)。这些是整数索引，无需内容打分、排序或训练；有效数 min(W,t+1)。同一 query 的全部主头共享它们。','new',220);
+ E('positions','bounds','M1560 2000 L1560 1764','位置 t',1480,1880,'new');
+ E('window','bounds','M1835 2000 C1835 1850 1660 1900 1660 1764','窗口宽度 W',1800,1860,'new');
+ E('bounds','topk','M1610 1700 L1610 1404','枚举连续位置；不足补无效槽',1610,1540,'new');
+ if(mode==='masked'){
+  N('scores','attn_scores',450,1080,dims(B,H,T,T),'原 MLA 主分数：q_states @ k_statesᵀ / √192。这是完整矩阵示意；随后用窗口 mask 屏蔽窗口外位置。','helper');
+  N('mask','window_mask',1500,1080,dims(B,T,T),'根据 window_indices 构造加法 mask：选中且因果合法的位置填 0，其余填 −∞。增加主头轴后 (2,1,128,128)，广播到所有主头。','new',220);
+  N('masked_scores','masked_attn_scores',450,850,dims(B,H,T,T),'attn_scores + window_mask[:,None,:,:]。选中列保留主分数，未选或未来列变为 −∞；形状不变。','new',220);
+  E('q_states','scores','M310 1560 C310 1320 500 1330 500 1144','QKᵀ / √192',280,1240);
+  E('k_states','scores','M870 1340 C870 1250 580 1260 580 1144');
+  E('topk','mask','M1610 1340 L1610 1144','scatter：选中填 0，其他 −∞',1610,1250,'ids');
+  E('scores','masked_scores','M540 1080 L540 914','主分数',450,1000);
+  E('mask','masked_scores','M1500 1112 C1380 1112 1320 882 670 882','unsqueeze 主头轴 + 广播，再相加',1110,970,'ids');
+  N('weights','attn_weights',450,620,dims(B,H,T,T),'softmax(masked_attn_scores)。完整形状仍是 (2,16,128,128)，但每个 query、每个主头最多 W 个有效非零权重。');
+  E('masked_scores','weights','M540 850 L540 684','softmax（沿最后一维）',705,780);
+  E('v','output','M1280 1560 C1420 1280 1260 412 860 412','A × V',1160,650);
+ }else{
+  N('ks','selected_k',780,1080,dims(B,H,T,m(),DN+DR),'按每个 query 的 ids，从 k_states 选出候选 Key。轴为 [B,H,query,候选,d]。这里有独立 query 轴，因此是五维；实际可由内核按索引读取而不物化。','new',210);
+  N('vs','selected_v',1190,1080,dims(B,H,T,m(),DV),'按同一组 ids 读取对应 Value；列槽与 selected_k 一一对应。不同 query 的候选列表可以不同。','new',210);
+  N('scores','attn_scores',450,850,dims(B,H,T,m()),'主 Q 只与每个 query 选中的 m 个 K 点积：einsum(bhtd,bhtmd→bhtm) / √192。不足有效候选数的槽位设为 −∞。无需计算完整主 QK 的所有列。','helper',220);
+  E('k_states','ks','M870 1340 L870 1144','按 query 选行',780,1250);E('v','vs','M1280 1560 L1280 1144','按同一 ids 选行',1280,1280);
+  E('topk','ks','M1500 1372 C1400 1372 1160 1112 990 1112','ids：逐 query gather',1160,1190,'ids');E('topk','vs','M1610 1340 C1610 1230 1400 1240 1400 1112','相同 ids',1540,1200,'ids');
+  E('q_states','scores','M310 1560 C310 1200 500 1220 500 914','每个 query 的 Q',320,1130);E('ks','scores','M885 1080 C885 990 600 1010 600 914','只做 m 个候选的点积',870,1000);
+  N('weights','attn_weights',450,620,dims(B,H,T,m()),'对有效候选槽做 softmax，主权重张量为 (2,16,128,m)。每行有效槽的权重和为 1。每个 query 的槽编号由 window_indices 映射到原 token 位置。');
+  E('scores','weights','M540 850 L540 684','有效槽 mask → softmax',720,780);E('vs','output','M1295 1080 C1295 800 1170 412 860 412','Σ候选 A × selected_v',1170,650);
+ }
+ N('output','output',680,380,dims(B,T,H*DV),'主权重对 Value 加权求和，先得到 (2,16,128,128)，再 transpose / concat heads 成 (2,128,2048)。这里第一个 128 是 query 数，最后一个 128 是每头 Value 特征。');
+ N('final','output',680,140,dims(B,T,D),'与原 MLA 图相同，拼接后的 2048 维乘输出投影 Wo，映射回 hidden size 7168。');
+ E('weights','output','M540 620 C540 520 720 560 720 444','加权 V → transpose / concat heads',640,530);E('output','final','M770 380 L770 204','Wo：2048 → 7168',935,300);
+}
+function txt(x,y,s,size=18,color='#263142',weight=400){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+size+'" fill="'+color+'" font-weight="'+weight+'">'+esc(s)+'</text>'}
+function render(){build();$('masked').setAttribute('aria-pressed',mode==='masked');$('sparse').setAttribute('aria-pressed',mode==='sparse');if(!nodes.some(n=>n.id===selected))selected='topk';const n=nodes.find(n=>n.id===selected);$('detail-title').textContent=n.name;$('detail-shape').textContent=n.shape;$('detail-body').textContent=n.body;
+ const valid=windowIds(query,k);$('notice').innerHTML=(mode==='masked'?'<b>完整矩阵视图：</b>QK 分数 + window_mask → softmax。主权重形状保持 (2,16,128,128)，窗口外权重为 0。':'<b>只算窗口内：</b>window_indices → 选择 K/V → 主注意力。attn_scores / attn_weights 的形状为 '+dims(B,H,T,m())+'。')+'<br>m=min(W,128)='+m()+'；每行有效数 min(W,t+1)，其余槽位需要屏蔽。';
+ renderWindow();
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1960 2590" role="group" aria-label="沿用 MLA 张量图，用 SWA 窗口选择位置，箭头从下向上" style="font-family:Segoe UI,Microsoft YaHei,sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#50617a"/></marker><marker id="orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#238274"/></marker></defs><rect width="1960" height="2590" fill="white"/>';
+ svg+=txt(660,55,'MLA 主链：沿用已理解的张量与维度',25,'#334c70',650)+txt(1630,55,'SWA：按距离选窗口',25,'#166a5a',650)+txt(1630,110,'B=2 · T=128 · 主头=16 · W='+k,18,'#6d7785');
+ svg+=txt(1630,400,'没有 Indexer / Top-k',22,'#166a5a',600)+txt(1630,440,'位置规则直接决定读取哪些 K/V',20,'#6d7785')+txt(1630,510,'当前观察 query t='+query,20,'#6d7785')+txt(1630,550,'有效索引：'+valid[0]+' ～ '+query+'，共 '+valid.length+' 个',19,'#166a5a');
+ svg+=txt(1640,2180,'位置元数据，不是内容投影',20,'#166a5a',600)+txt(1640,2220,'start = max(0, t − W + 1)',20,'#6d7785')+txt(1640,2260,'end = t；连续位置，无需排序',20,'#6d7785')+txt(1640,2330,'也没有独立的 index_k Cache',19,'#166a5a');
+ for(const e of edges){const color=e.type==='base'?'#50617a':'#238274',arrow=e.type==='base'?'arrow':'orange';svg+='<path d="'+e.path+'" fill="none" stroke="white" stroke-width="6"/>'+'<path d="'+e.path+'" fill="none" stroke="'+color+'" stroke-width="1.8" '+(e.type==='ids'?'stroke-dasharray="8 6" ':'')+'marker-end="url(#'+arrow+')"/>';if(e.op)svg+='<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" font-size="16" fill="'+color+'" stroke="white" stroke-width="7" paint-order="stroke">'+esc(e.op)+'</text>'}
+ for(const v of nodes){const color=v.kind==='new'?'#238274':v.kind==='cache'?'#267456':'#4c5b80';svg+='<g class="node '+(selected===v.id?'active':'')+'" role="button" tabindex="0" data-node="'+v.id+'" aria-label="'+esc(v.name+' '+v.shape)+'"><rect x="'+v.x+'" y="'+v.y+'" width="'+v.w+'" height="64" rx="15" fill="'+(v.kind==='new'?'#f0faf6':'white')+'" stroke="'+color+'" stroke-width="1.5"/>'+txt(v.x+v.w/2,v.y+39,v.name,18,'#263142')+'<text x="'+(v.x+v.w/2)+'" y="'+(v.y+94)+'" text-anchor="middle" font-size="19" fill="'+color+'" stroke="white" stroke-width="8" paint-order="stroke">'+esc(v.shape)+'</text></g>'}
+ svg+=txt(720,2540,'从这里向上读 ↑   |   内容仍走 MLA 主链；右侧 SWA 分支只使用位置与窗口大小。',18,'#657181');svg+='</svg>';$('diagram').innerHTML=svg;
+ document.querySelectorAll('[data-node]').forEach(el=>{const go=()=>{selected=el.dataset.node;const a=nodes.find(n=>n.id===selected);$('detail-title').textContent=a.name;$('detail-shape').textContent=a.shape;$('detail-body').textContent=a.body;document.querySelectorAll('[data-node]').forEach(e=>e.classList.toggle('active',e.dataset.node===selected))};el.onclick=go;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});
+ if($('download').dataset.blob)URL.revokeObjectURL($('download').dataset.blob);const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));$('download').href=url;$('download').dataset.blob=url;applyZoom();
+}
+function windowIds(t,w){return Array.from({length:Math.min(w,t+1)},(_,i)=>Math.max(0,t-w+1)+i)}
+function renderWindow(){const ids=windowIds(query,k);$('query-value').textContent=query;$('window-summary').textContent='query '+query+' → ['+ids.join(', ')+']；有效 '+ids.length+' 个，'+(m()-ids.length)+' 个无效槽。';$('token-strip').innerHTML=Array.from({length:T},(_,s)=>'<span class="token '+(s>query?'future':ids.includes(s)?'on':'')+(s===query?' current':'')+'" title="token '+s+'：'+(s>query?'未来':ids.includes(s)?'窗口内':'窗口外')+'">'+s+'</span>').join('')}
+function applyZoom(){const el=document.querySelector('#diagram svg');if(el)el.style.width=$('zoom').value==='fit'?'100%':$('zoom').value+'px'}
+$('masked').onclick=()=>{mode='masked';selected='mask';render()};$('sparse').onclick=()=>{mode='sparse';selected='topk';render()};$('k').onchange=e=>{k=+e.target.value;render()};$('zoom').onchange=applyZoom;$('query').oninput=e=>{query=+e.target.value;render()};render();
+</script></body></html>

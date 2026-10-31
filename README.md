@@ -2,7 +2,7 @@
 
 网站：<https://wangxiaoteng888.github.io/>
 
-用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA 与 DSA。
+用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA、DSA、SWA 与 CSA。
 首页提供完整目录；每个教程都带有相同的侧边栏，手机上可以通过顶部「目录」打开。
 既有教程地址继续有效。
 
@@ -14,7 +14,7 @@
 - `assets/home.js`、`assets/home.css`：首页目录与样式。
 - `assets/discussions.js`：页面底部讨论区，从 GitHub 读取公开留言。
 - `assets/discussions.json`：每个页面与 GitHub Issue 讨论帖的对应关系。
-- `mha-tensor-lab/`：MHA、MLA、DSA 教程及 SVG、PNG 图。
+- `mha-tensor-lab/`：MHA、MLA、DSA、SWA、CSA 教程及 SVG、PNG 图。
 
 ## 增加一个网页
 

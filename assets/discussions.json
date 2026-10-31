@@ -32,6 +32,14 @@
     "dsa-on-mla": {
       "number": 8,
       "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/8"
+    },
+    "swa-on-mla": {
+      "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/9",
+      "number": 9
+    },
+    "csa-v4": {
+      "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/10",
+      "number": 10
     }
   }
 }

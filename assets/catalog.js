@@ -25,5 +25,19 @@ window.TENSOR_LAB_CATALOG = [
       { id: 'dsa-prefill', title: 'DSA 多 token Prefill', description: '一次输入五个 token，看每个 query 怎样独立选择位置。', type: '交互图解', path: 'mha-tensor-lab/dsa-prefill.html' },
       { id: 'dsa-on-mla', title: '在 MLA 图上增加 DSA', description: '沿用熟悉的 MLA 主链，对照 Top-k mask 与只计算选中列。', type: '对照图解', path: 'mha-tensor-lab/dsa-on-mla.html' }
     ]
+  },
+  {
+    id: 'swa', number: '04', title: 'SWA', subtitle: '滑动窗口注意力',
+    description: '按位置保留近期窗口，观察候选、计算与缓存怎样变化。',
+    pages: [
+      { id: 'swa-on-mla', title: '在 MLA 图上理解 SWA', description: '调整窗口大小，对照只计算窗口内 K/V 与完整矩阵加窗口 mask。', type: '对照图解', path: 'mha-tensor-lab/swa-on-mla.html' }
+    ]
+  },
+  {
+    id: 'csa', number: '05', title: 'CSA', subtitle: '压缩稀疏注意力',
+    description: '把历史压缩候选与近期窗口汇合，跟踪一次主注意力计算。',
+    pages: [
+      { id: 'csa-v4', title: 'V4 CSA：DSA 与 SWA 如何汇合', description: '跟着单个 query，看压缩条目 Top-k 与窗口 KV 如何合并并统一归一化。', type: '交互图解', path: 'mha-tensor-lab/csa-v4.html' }
+    ]
   }
 ];
