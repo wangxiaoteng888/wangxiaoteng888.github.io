@@ -3,11 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MLA 与 DSA 张量图解</title>
-  <meta http-equiv="refresh" content="0;url=mha-tensor-lab/dsa-on-mla.html">
-  <link rel="canonical" href="https://wangxiaoteng888.github.io/mha-tensor-lab/dsa-on-mla.html">
+  <meta name="description" content="张量实验室：用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA 与 DSA。">
+  <title>张量实验室 · Attention，一步一步看懂</title>
+  <link rel="stylesheet" href="assets/navigation.css">
+  <link rel="stylesheet" href="assets/home.css">
+  <script src="assets/catalog.js" defer></script>
+  <script src="assets/navigation.js" defer></script>
+  <script src="assets/home.js" defer></script>
 </head>
-<body>
-  <p><a href="mha-tensor-lab/dsa-on-mla.html">打开 MLA 与 DSA 张量图解</a></p>
+<body data-lab-page="home">
+  <main class="home" id="lab-main" tabindex="-1">
+    <div class="home-topline"><span>学习目录</span><span>ATTENTION / TENSOR LAB</span></div>
+    <section class="home-hero" aria-labelledby="home-title">
+      <div>
+        <p class="eyebrow">张量实验室</p>
+        <h1 id="home-title">把注意力机制，<br>拆成看得见的每一步<span>。</span></h1>
+        <p class="hero-intro">从一个小矩阵出发，跟踪每次投影、拆头与加权。<br class="desktop-break">用可交互的数字和图，串起 MHA、MLA 与 DSA。</p>
+        <div class="hero-actions">
+          <a class="start-link" href="mha-tensor-lab/index.html">从 MHA 开始 <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="mha-tensor-lab/dsa-on-mla.html">打开 DSA × MLA 图解 <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+      <div class="tensor-note" aria-label="张量变化示意：输入、拆分多头、合并输出">
+        <div class="note-label">FOLLOW THE TENSOR <span>01 — 03</span></div>
+        <div class="tensor-stage"><span class="stage-label">输入</span><code>[B, T, D]</code><div class="tensor-grid" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="tensor-connector">↓ <span>投影 · 拆头</span></div>
+        <div class="tensor-stage"><span class="stage-label">多头</span><code>[B, H, T, d]</code><div class="tensor-heads" aria-hidden="true"><div class="mini-head"></div><div class="mini-head warm"></div></div></div>
+        <div class="tensor-connector">↓ <span>加权 · 合并</span></div>
+        <div class="tensor-stage last"><span class="stage-label">输出</span><code>[B, T, D]</code><span class="tensor-result" aria-hidden="true">↗</span></div>
+        <p>每一步，都有形状可循。</p>
+      </div>
+    </section>
+    <section class="directory" aria-labelledby="directory-title">
+      <div class="directory-heading"><h2 id="directory-title">实验室目录</h2><span id="catalog-count">MHA → MLA → DSA</span></div>
+      <div id="catalog-groups"></div>
+      <noscript><p>交互教程需要启用 JavaScript。你也可以直接打开 <a href="mha-tensor-lab/index.html">MHA</a>、<a href="mha-tensor-lab/mla.html">MLA</a> 或 <a href="mha-tensor-lab/dsa.html">DSA</a>。</p></noscript>
+    </section>
+    <footer class="home-footer"><span>张量实验室 <span class="footer-dot">·</span> 可手算的例子，交互式的学习笔记。</span><a href="https://github.com/wangxiaoteng888/wangxiaoteng888.github.io" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></footer>
+  </main>
 </body>
 </html>
