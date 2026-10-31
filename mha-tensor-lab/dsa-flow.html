@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DSA 数据流图 · 从选位置到算输出</title>
+<style>
+:root{--bg:#f5f5ef;--paper:#fffef9;--ink:#20332f;--muted:#677770;--green:#17634f;--orange:#ad582b;--line:#d8dfd6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 'Segoe UI','Microsoft YaHei',sans-serif}a{color:var(--green)}button,select{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid var(--orange);outline-offset:3px}header{padding:16px 4vw;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;font-size:13px}header nav{display:flex;gap:20px}main{max-width:1600px;margin:auto;padding:32px 3vw 60px}.eyebrow{letter-spacing:.12em;color:var(--green);font-size:12px;font-weight:700}h1{font-size:clamp(28px,3.4vw,44px);line-height:1.25;margin:12px 0 18px}h2{font-size:22px;line-height:1.4}p{margin:10px 0}.lead{font-size:17px;max-width:1000px;color:#53655d}.lead strong{color:var(--ink)}.strap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;background:#e5eee5;border-left:4px solid var(--green);margin:24px 0}.strap b{font-size:16px}.strap span{color:var(--muted)}.tools{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:15px 0}.tabs{display:flex;gap:5px}.tabs button,.controls button,.download{border:1px solid var(--line);background:var(--paper);border-radius:6px;padding:8px 12px;text-decoration:none}.tabs button[aria-pressed=true]{background:var(--green);color:white;border-color:var(--green)}select{padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:var(--paper)}.tools .download{margin-left:auto;font-size:13px}.legend{display:flex;gap:24px;font-size:13px;color:var(--muted);margin-bottom:12px;flex-wrap:wrap}.legend i{display:inline-block;width:28px;border-top:2px solid var(--green);vertical-align:middle;margin-right:7px}.legend i.dash{border-top:2px dashed var(--orange)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}.canvas{border:1px solid var(--line);background:var(--paper);border-radius:12px;overflow:auto}.canvas svg{display:block;width:100%;height:auto;min-width:690px}aside{position:sticky;top:16px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:23px}.number{font-size:12px;letter-spacing:.1em;color:var(--orange);font-weight:700}.controls{display:flex;gap:8px;margin:20px 0 4px}.controls button{flex:1}.detail-shape{background:#e7efe7;border-radius:6px;padding:12px;font:13px/1.8 Consolas,monospace;overflow-wrap:anywhere}.detail-body{font-size:14px}.detail-body code{color:var(--green);font:13px Consolas,monospace}.detail-body ul{padding-left:19px}.reminder{border-left:3px solid var(--orange);padding:9px 12px;background:#f7eddf;font-size:13px;margin-top:16px}.values{overflow:auto;font-family:Consolas,monospace;font-size:13px;white-space:pre-wrap;background:#f3f4ee;padding:12px;border-radius:6px}.bottom{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:20px}.bottom section{padding:22px;border-top:2px solid var(--line)}.bottom h2{margin:0 0 12px;font-size:19px}.bottom p{font-size:14px;color:#53655d}.source{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:20px;margin-top:28px}.source a{margin-right:16px}.reading{font-size:13px;color:var(--muted);margin-bottom:14px}.node{cursor:pointer;outline:none}.node .box{transition:stroke .15s,fill .15s}.node:hover .box,.node:focus-visible .box{stroke-width:3;stroke:#ad582b}.node.active .box{stroke-width:4;stroke:#ad582b;fill:#fff4df}.edge{fill:none;stroke:#78948a;stroke-width:2;marker-end:url(#arrow)}.edge.route{stroke:#ad582b;stroke-width:2.8;stroke-dasharray:9 7;marker-end:url(#routeArrow)}.edge.lit{stroke:#ad582b;stroke-width:3.8}.dim{opacity:.34}@media(max-width:1000px){.layout{grid-template-columns:1fr}aside{position:static}.canvas{max-height:78vh}.bottom{grid-template-columns:1fr}.canvas svg{min-width:740px}main{padding:25px 4vw}.tools .download{margin-left:0}}@media print{header,.tools,aside,.source,.bottom,.reading{display:none}.layout{display:block}.canvas{border:0;overflow:visible}.canvas svg{min-width:0;width:100%}main{padding:0}.strap{margin:10px 0}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<header><b>ATTENTION / 数据流图解</b><nav><a href="dsa-prefill.html"><b>一次输入 5 个 token →</b></a><a href="mla.html">MLA 实验室</a><a href="dsa.html">DSA 数值实验室</a></nav></header>
+<main>
+<div class="eyebrow">DEEPSEEK V3.2 / DSA</div>
+<h1>DSA 到底加了哪一步？<br>先选位置，再对这些位置算 MLA。</h1>
+<p class="lead">沿用你图里的 <strong>Q → QK 打分 → softmax → 加权 V → 输出</strong>。新增的 Indexer 在旁边挑出 token 编号，让这条主路径只处理选中的 K、V。</p>
+<div class="strap"><b>本例：第 5 号 token 发起查询</b><span>6 个可见位置（0～5）</span><b>→</b><b id="selection-summary"></b><b>→</b><span>MLA 只对这些位置重新打分</span></div>
+<div class="tools"><div class="tabs" aria-label="图的详细程度"><button id="simple" aria-pressed="false">先看简图</button><button id="full" aria-pressed="true">完整张量数据流</button></div><label>选多少个位置 <select id="topk" aria-label="Top-k"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><a class="download" id="download" download="dsa-dataflow.svg" href="#">下载当前 SVG 图 ↓</a></div>
+<div class="legend"><span><i></i>实线：张量 / 内容流动</span><span><i class="dash"></i>橙色虚线：位置编号，只负责选行</span><span>橙色节点：当前正在讲解</span></div>
+<p class="reading">从上往下读。点一个方框看它的输入、操作和输出；也可以用右侧“下一步”。B=1（批次），Tq=1（本轮查询 token 数），L=6（可见缓存长度），H=2（主注意力头数）；每头内容维度、RoPE 维度、压缩维度均为 2。所有数字均为教学示例。<br>想单独放大查看：<a href="dsa-flow-full.svg" target="_blank">完整张量图 ↗</a> · <a href="dsa-flow-simple.svg" target="_blank">简图 ↗</a>（静态图固定 k=2）</p>
+<div class="layout"><div class="canvas" id="diagram"></div><aside aria-live="polite"><div class="number" id="step-number"></div><h2 id="detail-title"></h2><div class="detail-shape" id="detail-shape"></div><div class="detail-body" id="detail-body"></div><div class="reminder" id="detail-note"></div><div class="controls"><button id="prev">← 上一步</button><button id="next">下一步 →</button></div><p style="font-size:12px;color:var(--muted)">按讲解顺序会先走选位置的分支，再回到主 MLA。</p></aside></div>
+<div class="bottom">
+<section><h2>和你发来的那张 MLA 图怎么对应？</h2><p>你图里的 <b>q_nope、q_pe、k_nope、k_pe、value_states</b> 都还在。这里用 <b>Qᶜ、Qᴿ、Kᶜ、Kᴿ、V</b> 表示它们。原来对全部 L 个位置计算，现在通过 Top-k，只对 k 个位置计算。</p><p>例如沿用你图的 B=2、H=16、Tq=128，若可读前缀 L=4096、教学设定 k=32，则注意力分数从 <b>[2,16,128,4096]</b> 变为 <b>[2,16,128,32]</b>。每个 query 各自选 32 个位置，同一个 query 的 16 个主注意力头共享这些编号。</p><p>官方 V3.2-Exp 的 k 配置为 2048。如果总共只有 128 个可见 token，就没有“从 128 个里只选 2048 个”的稀疏收益：可见位置都会保留。</p></section>
+<section><h2>为什么图里展开了 K、V？</h2><p>这是为了和你原图逐项对上：先把选中的压缩向量 C 解成 Kᶜ、V，再计算。实际 MLA 可以把矩阵乘法合并，避免显式展开这些张量。</p><p>对每个头，等价计算是 <b>Q̂=Qᶜ(Uᴷ)ᵀ</b>，然后用 <b>Q̂Cᵀ + Qᴿ(Kᴿ)ᵀ</b> 打分；加权得到 <b>A C</b>，再做 <b>(A C)Uⱽ</b>。两种写法都只读 Top-k 选中的 C、Kᴿ，DSA 的位置选择不变。</p><p>本图的 Gather 表示逻辑选行；稀疏 kernel 可以直接按编号读取缓存，并不一定创建一份独立的 selected 张量。</p></section>
+<section><h2>缓存没有被删掉</h2><p>主 MLA 仍缓存所有有效历史 token 的 <b>Cᴷⱽ 和已做 RoPE 的 Kᴿ</b>；Indexer 另有自己的 Kᴵ 缓存（量化实现还需要 scale）。这一次没选中的位置，下一个 query 仍可能选到。</p><p>位置 2 被选中后仍保留原来的位置编码；不会因为排到候选列表第 0 行，就改成“位置 0 的 RoPE”。</p></section>
+<section><h2>省下的计算在哪里？</h2><p>对一个 query，Indexer 仍要给全部 L 个候选做较轻量的评分；更重的主 MLA 只算 k 个位置。整段 prefill 的 Indexer 仍包含二次规模的评分，不能把整个 DSA 都说成 O(Tk)。</p><p>DSA 的训练会让 Indexer 学会挑选重要位置。Top-k 的分数和主注意力权重是两套东西；稀疏输出通常也不等于全量 MLA 输出。</p></section>
+</div>
+<div class="source">依据 DeepSeek-V3.2 / V3.2-Exp。图中省略投影后的部分归一化、Indexer 的旋转/量化和缩放细节；这些不改变两条支路的数据依赖。示例 Indexer 仅用于演示选行，数值不是模型训练权重。<p><a href="https://arxiv.org/html/2512.02556v1" target="_blank" rel="noreferrer">DeepSeek-V3.2 技术报告 §2.1</a><a href="https://github.com/deepseek-ai/DeepSeek-V3.2-Exp/blob/main/inference/model.py" target="_blank" rel="noreferrer">官方参考实现：Indexer 与 MLA</a><a href="dsa.html">打开逐步矩阵计算 →</a></p></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let mode='full',step=0,k=2;
+const tokens=['我','昨天','在','图书馆','学习','注意力'];
+const indexScores=[.5,1.75,2,.75,.5,1.25];
+const C=[[1.5,0],[0,1.5],[1,1],[1,.5],[.5,1],[1.5,1.5]];
+const Kbase=[[1,0],[0,1],[1,1],[1,0],[0,1],[1,1]];
+const rot=(v,t)=>[v[0]*Math.cos(t*Math.PI/4)-v[1]*Math.sin(t*Math.PI/4),v[0]*Math.sin(t*Math.PI/4)+v[1]*Math.cos(t*Math.PI/4)];
+const KR=Kbase.map(rot),QR=rot([1,1],5),QC=[[1,1],[0,2]];
+const ids=()=>indexScores.map((_,i)=>i).sort((a,b)=>indexScores[b]-indexScores[a]||a-b).slice(0,k);
+const mm=(v,w)=>w[0].map((_,j)=>v.reduce((s,a,i)=>s+a*w[i][j],0));
+const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
+const UK=[[[1,0],[0,1]],[[1,.5],[.5,1]]],UV=[[[1,0],[0,1]],[[1,-1],[1,1]]];
+const WO=[[1,0,.5,0],[0,1,0,.5],[.5,0,1,0],[0,.5,0,1]];
+const fmt=n=>Math.abs(n)<.00005?'0':Number(n.toFixed(3)).toString();
+const vec=a=>'['+a.map(fmt).join(', ')+']';
+function calc(){const sel=ids();let scores=[],weights=[],out=[];for(let h=0;h<2;h++){const s=sel.map(i=>(dot(QC[h],mm(C[i],UK[h]))+dot(QR,KR[i]))/2);const e=s.map(v=>Math.exp(v-Math.max(...s))),sum=e.reduce((a,b)=>a+b,0),a=e.map(v=>v/sum);const z=[0,0];sel.forEach((id,j)=>mm(C[id],UV[h]).forEach((v,d)=>z[d]+=a[j]*v));scores.push(s);weights.push(a);out.push(z)}return{sel,scores,weights,out,y:mm(out.flat(),WO)}}
+const descriptions={
+input:()=>['输入：当前 token 的 hidden state','X_new [1,1,4]','<p>我们正在计算第 5 号 token“注意力”的输出。历史位置 0～4 已经有缓存；本轮把位置 5 的缓存也写入。</p><p>同一份 hidden state 会走向 MLA 的查询/缓存投影，以及 Indexer 的投影。</p>','图中 L=6 包含当前位置；没有读取未来 token。'],
+cq:()=>['共享的查询压缩向量','X_new [1,1,4] → Cᴽ [1,1,2]','<p>先把当前输入降维成 Cᴽ。它有两个用途：</p><ul><li>生成主 MLA 的 Qᶜ 和 Qᴿ。</li><li>生成 Indexer 自己的查询 Qᴵ。</li></ul>','共享输入 Cᴽ，不代表两条支路的 Q 相同：它们使用不同的投影权重。'],
+kv:()=>['生成本轮的 MLA 缓存','X_new → C_new [1,1,2] + Kᴿ_new [1,1,2]','<p>一条投影生成压缩内容 Cᴷⱽ，另一部分生成位置 Key，并按 token 的原始位置做 RoPE。</p><p>C 用来隐式表示各个头的 Kᶜ 和 V；Kᴿ 专门参与位置相关的打分。</p>','这一步属于 MLA；DSA 没有把 MLA 的压缩缓存换掉。'],
+cache:()=>['把新 token 加入全部历史缓存','C_cache [1,6,2]；Kᴿ_cache [1,6,2]','<p>追加位置 5 后，两个缓存各有 6 行。若概念上按最后一维拼在一起，就是 [1,6,4]。</p><div class="values">C_cache =\n'+C.map((v,i)=>'位置 '+i+'  '+vec(v)).join('\n')+'</div>','Top-k 只改变本次读哪几行，不会把另外几行从缓存删掉。'],
+index:()=>['Indexer：准备自己的 Q、K、权重','Qᴵ [1,2,1,2]；Kᴵ_cache [1,6,2]；wᴵ [1,1,2]','<p><b>Qᴵ</b> 从 Cᴽ 投影；<b>Kᴵ</b> 从各 token 的 hidden state 独立投影并缓存；<b>wᴵ</b> 从当前 hidden state 投影。</p><p>这里 Indexer 有 2 个打分头，它们使用一份共享的 Kᴵ。主 MLA 也恰好有 2 个头，只是为了让教学例子更小，两者不是同一组头。</p>','Kᴵ 不是 MLA 的 Kᶜ / Kᴿ，也不是由主 MLA 的注意力分数拷贝而来。'],
+rank:()=>['轻量打分：哪个位置值得读？','每个 Indexer 头打分 → 汇总 I [1,1,6]','<p>对每个候选位置 s 计算：</p><div class="values">I[t,s] = Σⱼ wᴵ[t,j] ·\n ReLU(Qᴵ[t,j] · Kᴵ[s])</div><p>先按头计算点积，经过 ReLU，再用 wᴵ 加权汇总。应用因果约束，只保留 s≤t。</p><div class="values">位置：0     1     2     3     4     5\n分数：0.50  1.75  2.00  0.75  0.50  1.25</div>','这里没有用 softmax 生成最终的注意力权重。wᴵ 也不要求是概率。'],
+top:()=>['Top-k：输出的是整数位置编号','I [1,1,6] → ids [1,1,'+k+']','<p>按 Indexer 的分数挑前 '+k+' 个。得到：</p><div class="values">ids = '+vec(ids())+'\n'+ids().map(i=>'位置 '+i+'「'+tokens[i]+'」：'+indexScores[i]).join('\n')+'</div><p>同一个 query 的所有主 MLA 头共用这份 ids。</p>','ids 是地址。它不与 V 相乘；Indexer 分数也不会加到主 MLA 的 logits 上。'],
+gather:()=>['按编号读取主 MLA 缓存','C_sel、Kᴿ_sel 各 [1,1,'+k+',2]','<p>用 ids 同时选 C_cache 和 Kᴿ_cache 的对应行。维度顺序是 [B,Tq,k,d]。</p><div class="values">'+ids().map(i=>'位置 '+i+'：C='+vec(C[i])+'\n        Kᴿ='+vec(KR[i])).join('\n')+'</div><p>这就是橙色虚线真正影响主计算的地方：让主 MLA 只读这 '+k+' 个 token。</p>','未选中的缓存仍然存在。选行后保留原位置的 RoPE，不重新编号。'],
+q:()=>['主 MLA：得到各个头的 Q','Cᴽ → Qᶜ、Qᴿ，各 [1,2,1,2]','<p>用主 MLA 的投影把 Cᴽ 变成各个头的 Query，并拆出：</p><ul><li>Qᶜ：NoPE，负责内容匹配。</li><li>Qᴿ：做过 RoPE，参与相对位置相关的匹配。</li></ul><div class="values">Qᶜ Head 1 = [1,1]\nQᶜ Head 2 = [0,2]\nQᴿ 两个头 = '+vec(QR)+'</div>','只筛选 Key / Value 的候选位置，不是把当前 Query 的某几个头删掉。'],
+expand:()=>['对应你的原图：展开选中的 K、V','Kᶜ、Kᴿ、V 各 [1,2,1,'+k+',2]','<p>对每个主头 h：</p><div class="values">Kᶜ_h = C_sel Uᴷ_h\nV_h  = C_sel Uⱽ_h</div><p>Kᴿ_sel 共享给两个主头。为了保留“一行 query 一组选中位置”，这里显式保留 Tq 轴；本例 Tq=1 时可把它去掉。</p>','本图使用方便对照的展开写法。实际 MLA 可通过矩阵吸收避免显式生成 Kᶜ、V；见图下说明。'],
+score:()=>['主 MLA 重新算注意力分数','S [1,2,1,'+k+']','<p>每个主头分别计算：</p><div class="values">S_h = (Qᶜ_h (Kᶜ_h)ᵀ\n     + Qᴿ_h (Kᴿ)ᵀ) / √(dₙ+dᵣ)</div><p>这里 dₙ=dᵣ=2，所以除以 2。Head 1 的 Q 和 Head 1 的 K 对应，Head 2 同理。</p><div class="values">'+calc().scores.map((s,h)=>'Head '+(h+1)+'：'+vec(s)).join('\n')+'</div>','这些新分数才是主注意力 logits。候选顺序为 ids='+vec(ids())+'，不是全部 6 个位置。'],
+softmax:()=>['softmax：把主分数变成权重','S → A [1,2,1,'+k+']','<p>每个 query、每个主头，沿选中的 k 个位置做 softmax。这一行权重之和为 1。</p><div class="values">'+calc().weights.map((a,h)=>'Head '+(h+1)+'：'+vec(a)).join('\n')+'</div><p>不同主头可以对同一份候选分配不同权重。</p>','虽然候选由 Indexer 选定，但最终贡献大小由主 MLA 的 softmax 决定。'],
+sum:()=>['用真正的注意力权重加权 V','A × V → Z [1,2,1,2]','<p>每个主头将选中位置的 V 按 A 加权求和，k 这个轴被求和消掉。</p><div class="values">Z_h = Σ_s A[h,s] · V[h,s]\n\n'+calc().out.map((z,h)=>'Head '+(h+1)+'：'+vec(z)).join('\n')+'</div>','到这一步才是“权重乘 V”。Top-k 的 ids 从未被当成权重使用。'],
+out:()=>['合并各个头，得到这一层的输出','[1,2,1,2] → [1,1,4] → Y [1,1,4]','<p>转置后拼接两个主头的结果，再乘输出投影 Wᴼ，恢复 hidden size。</p><div class="values">Y = '+vec(calc().y)+'</div><p>修改上方 k，可以看到候选列表、主分数、权重和最后输出一起变化。k=6 时，本例候选覆盖全部位置，结果回到同一组参数下的全量 MLA。</p>','DSA 的新增作用可概括为：先决定读哪里，再让 MLA 决定读到的内容各占多少。']
+};
+const fullOrder=['input','cq','kv','cache','index','rank','top','gather','q','expand','score','softmax','sum','out'];
+const simpleOrder=['input','index','rank','top','gather','score','softmax','sum','out'];
+const order=()=>mode==='full'?fullOrder:simpleOrder;
+const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+let nodes=[],edges=[];
+function node(id,x,y,w,h,title,lines,kind='main'){nodes.push({id,x,y,w,h,title,lines,kind})}
+function edge(from,to,d,label='',x=0,y=0,route=false){edges.push({from,to,d,label,x,y,route})}
+function fullGraph(){
+ node('input',500,45,360,105,'① 当前 token 输入',['X_new [1,1,4] · 位置 t=5']);
+ node('kv',40,245,360,125,'MLA 缓存投影',['C_new [1,1,2]','Kᴿ_new [1,1,2] · 已做 RoPE']);
+ node('cq',500,245,360,125,'查询降维',['Cᴽ = X_new WᴰQ','[1,1,2]']);
+ node('index',960,245,380,150,'② Indexer 的独立投影',['Qᴵ ← Cᴽ；Kᴵ、wᴵ ← X','Qᴵ [1,2,1,2] · wᴵ [1,1,2]','Kᴵ_cache [1,6,2]'], 'index');
+ node('cache',40,470,360,140,'全部历史 MLA 缓存',['C_cache [1,6,2]','Kᴿ_cache [1,6,2]','共有 6 行，不删除未选中的行'],'cache');
+ node('q',500,470,360,140,'主 MLA 的 Query',['Qᶜ（NoPE）[1,2,1,2]','Qᴿ（RoPE）[1,2,1,2]','两个主头，分别计算']);
+ node('rank',960,500,380,140,'③ 对 6 个位置轻量评分',['ReLU 点积 → 按 Indexer 头汇总','I [1,1,6]','[0.50, 1.75, 2, 0.75, 0.50, 1.25]'],'index');
+ node('top',960,735,380,120,'④ Top-'+k+' 位置编号',['ids [1,1,'+k+'] = '+vec(ids()),'它们是地址，不是注意力权重'],'index');
+ node('gather',40,760,360,140,'⑤ 按 ids 读取两份缓存',['C_sel [1,1,'+k+',2]','Kᴿ_sel [1,1,'+k+',2]','只读位置 '+vec(ids())],'cache');
+ node('expand',40,1050,360,160,'展开选中的 K、V',['Kᶜ_h = C_sel Uᴷ_h','V_h = C_sel Uⱽ_h；共享 Kᴿ','各 [1,2,1,'+k+',2]','此处是便于对照原图的写法']);
+ node('score',500,1260,360,160,'⑥ 主 MLA 重新打分',['Qᶜ(Kᶜ)ᵀ + Qᴿ(Kᴿ)ᵀ','再除以 √(dₙ+dᵣ) = 2','S [1,2,1,'+k+']','每个头只算 '+k+' 个位置']);
+ node('softmax',500,1500,360,110,'⑦ softmax → 真正权重',['A [1,2,1,'+k+'] · 每行和为 1']);
+ node('sum',500,1710,360,110,'⑧ 对选中的 V 加权求和',['Z = A V → [1,2,1,2]']);
+ node('out',500,1905,360,110,'⑨ 合并头 + 输出投影',['concat → Wᴼ → Y [1,1,4]']);
+ edge('input','kv','M680 150 V195 H220 V245','X_new',270,185);
+ edge('input','cq','M680 150 V245');
+ edge('input','index','M680 150 V195 H1150 V245','X_new',1010,185);
+ edge('cq','index','M860 305 H960','Cᴽ',910,292);
+ edge('kv','cache','M220 370 V470','追加到历史',290,430);
+ edge('cq','q','M680 370 V470','投影 / 拆分 / RoPE',680,430);
+ edge('index','rank','M1150 395 V500');
+ edge('rank','top','M1150 640 V735','因果约束：s ≤ 5',1150,690);
+ edge('top','gather','M1150 855 V965 H425 V830 H400','只传 ids：选择哪几行',820,955,true);
+ edge('cache','gather','M220 610 V760','C_cache、Kᴿ_cache',220,695);
+ edge('gather','expand','M220 900 V1050','选中的压缩内容 + 位置 Key',220,1012);
+ edge('q','score','M680 610 V1260','Qᶜ、Qᴿ',745,1170);
+ edge('expand','score','M400 1115 H455 V1340 H500','Kᶜ、Kᴿ',457,1250);
+ edge('score','softmax','M680 1420 V1500','主注意力 logits',680,1470);
+ edge('softmax','sum','M680 1610 V1710','A：每头各自的权重',680,1670);
+ edge('expand','sum','M220 1210 V1765 H500','V：参与最终内容汇总',285,1710);
+ edge('sum','out','M680 1820 V1905','转置 → 拼接头',680,1870);
+}
+function simpleGraph(){
+ node('input',450,40,420,105,'当前 token 发起查询',['位置 5「注意力」· 可见 0～5']);
+ node('index',800,245,460,110,'Indexer 看全部候选',['使用自己的 Qᴵ、Kᴵ、wᴵ'],'index');
+ node('rank',800,440,460,130,'轻量评分，不是最终权重',['位置 0 / 1 / 2 / 3 / 4 / 5','分数 0.5 / 1.75 / 2 / 0.75 / 0.5 / 1.25'],'index');
+ node('top',800,665,460,110,'Top-'+k+' → ids='+vec(ids()),['这些整数只负责指向缓存行'],'index');
+ node('gather',60,665,490,145,'从全部 MLA 缓存中选行',['6 行 C + 6 行 Kᴿ 都留在缓存中','本轮只读 '+vec(ids())+'；再得到对应 K、V'],'cache');
+ node('score',60,970,490,140,'主 MLA 重新计算 QK 分数',['当前 Q 与选中的 '+k+' 个 K 匹配','内容点积 + RoPE 点积 → 缩放']);
+ node('softmax',60,1200,490,100,'softmax 生成真正的注意力权重',['每个主头分别计算；只在候选内归一化']);
+ node('sum',60,1390,490,100,'注意力权重 × 选中的 V',['加权求和，得到每个头的内容输出']);
+ node('out',60,1570,490,100,'拼接头 + 输出投影',['得到当前 token 的新表示 Y']);
+ edge('input','index','M660 145 V195 H1030 V245');
+ edge('input','gather','M660 145 V195 H305 V665','生成 / 追加 MLA 缓存',305,470);
+ edge('input','score','M450 95 H25 V1040 H60','主 Query',108,930);
+ edge('index','rank','M1030 355 V440');
+ edge('rank','top','M1030 570 V665');
+ edge('top','gather','M800 720 H550','位置编号',675,700,true);
+ edge('gather','score','M305 810 V970','选中的 K',305,905);
+ edge('score','softmax','M305 1110 V1200','新的主注意力分数',305,1170);
+ edge('softmax','sum','M305 1300 V1390','真正的权重 A',305,1360);
+ edge('gather','sum','M550 775 H635 V1440 H550','选中的 V',704,1375);
+ edge('sum','out','M305 1490 V1570');
+}
+function textLine(x,y,t,size=21,color='#20332f',weight=400){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+size+'" fill="'+color+'" font-weight="'+weight+'">'+esc(t)+'</text>'}
+function renderGraph(){nodes=[];edges=[];mode==='full'?fullGraph():simpleGraph();const current=order()[step];const h=mode==='full'?2070:1740;let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 '+h+'" role="img" aria-label="DSA 数据流：Indexer 选择位置，主 MLA 在选中位置计算注意力" style="font-family:Segoe UI,Microsoft YaHei,sans-serif"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#78948a"/></marker><marker id="routeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#ad582b"/></marker></defs><rect width="1380" height="'+h+'" fill="#fffef9"/>';
+ if(mode==='full'){svg+=textLine(220,30,'缓存路径',18,'#677770')+textLine(1150,30,'DSA 新增：选位置的路径',18,'#ad582b');svg+= '<rect x="925" y="220" width="435" height="670" rx="20" fill="#fbf0e2"/>';svg+=textLine(1138,1080,'这条分支到 ids 就结束了。',23,'#ad582b',600)+textLine(1138,1125,'没有把 Indexer 分数',22,'#677770')+textLine(1138,1160,'传给 softmax 或乘 V。',22,'#677770');svg+=textLine(1110,1370,'注意力的长度轴',22,'#677770')+textLine(1110,1420,'6 → '+k,38,'#17634f',700)+textLine(1110,1460,'稀疏发生在这里',22,'#17634f');}
+ else{svg+=textLine(1030,1000,'两个问题，两套分数',26,'#ad582b',700)+textLine(1030,1055,'Indexer：应该读哪几行？',24,'#ad582b')+textLine(1030,1120,'MLA：读到的内容各占多少？',24,'#17634f');}
+ for(const e of edges){const color=e.route?'#ad582b':'#78948a';svg+='<path class="edge '+(e.route?'route ':'')+((e.from===current||e.to===current)?'lit':'')+'" d="'+e.d+'" fill="none" stroke="'+color+'" stroke-width="'+(e.route?2.8:2)+'" '+(e.route?'stroke-dasharray="9 7" ':'')+'marker-end="url(#'+(e.route?'routeArrow':'arrow')+')"/>';if(e.label)svg+='<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" font-size="19" fill="'+color+'" stroke="#fffef9" stroke-width="8" paint-order="stroke">'+esc(e.label)+'</text>';}
+ for(const n of nodes){const fill=n.kind==='index'?'#fff6e9':n.kind==='cache'?'#e7efe7':'#fffef9',stroke=n.kind==='index'?'#bc8455':'#8ba296';svg+='<g class="node '+(n.id===current?'active':'')+'" tabindex="0" role="button" aria-label="'+esc(n.title)+'" data-node="'+n.id+'"><rect class="box" x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="12" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.8"/>'+textLine(n.x+n.w/2,n.y+34,n.title,23,n.kind==='index'?'#9b4e25':'#17634f',650);n.lines.forEach((t,i)=>svg+=textLine(n.x+n.w/2,n.y+65+i*27,t,19,i===0?'#20332f':'#677770'));svg+='</g>'}svg+='</svg>';$('diagram').innerHTML=svg;
+ document.querySelectorAll('[data-node]').forEach(el=>{const go=()=>{const s=order().indexOf(el.dataset.node);if(s>=0){step=s;render()}};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})});
+ const old=$('download').dataset.blob;if(old)URL.revokeObjectURL(old);const blob=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));$('download').href=blob;$('download').dataset.blob=blob;
+}
+function render(){const id=order()[step],d=descriptions[id]();$('detail-title').textContent=d[0];$('detail-shape').textContent=d[1];$('detail-body').innerHTML=d[2];$('detail-note').textContent=d[3];$('step-number').textContent='讲解 '+(step+1)+' / '+order().length;$('selection-summary').textContent='选 '+k+' 个位置 '+vec(ids());$('simple').setAttribute('aria-pressed',mode==='simple');$('full').setAttribute('aria-pressed',mode==='full');$('prev').disabled=step===0;$('next').disabled=step===order().length-1;renderGraph()}
+function changeMode(m){const id=order()[step];mode=m;step=Math.max(0,order().indexOf(id));render()}
+$('simple').onclick=()=>changeMode('simple');$('full').onclick=()=>changeMode('full');$('topk').onchange=e=>{k=+e.target.value;render()};$('prev').onclick=()=>{if(step>0){step--;render()}};$('next').onclick=()=>{if(step<order().length-1){step++;render()}};render();
+</script>
+</body>
+</html>
