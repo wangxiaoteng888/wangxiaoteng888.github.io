@@ -4,7 +4,7 @@
 
 用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA、DSA、SWA 与 CSA。
 首页提供完整目录；每个教程都带有相同的侧边栏，手机上可以通过顶部「目录」打开。
-既有教程地址继续有效。
+MLA 章节统一使用 `mha-tensor-lab/mla-original.html`；旧的 `mla.html` 和 `mla-flow.html` 自动跳转到它。该页面沿用 `mla` 页面 ID 与原有 MLA 讨论区。
 
 ## 网站文件
 

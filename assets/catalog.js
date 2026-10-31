@@ -10,10 +10,9 @@ window.TENSOR_LAB_CATALOG = [
   },
   {
     id: 'mla', number: '02', title: 'MLA', subtitle: '多头潜在注意力',
-    description: '把多头 K/V 压缩进共享向量，理解存储与计算的关系。',
+    description: '跟踪原始 MLA 的完整张量流，理解每个 token 的压缩缓存。',
     pages: [
-      { id: 'mla', title: 'MLA 张量实验室', description: 'KV 联合压缩、解耦 RoPE，以及不展开 K/V 的等价计算。', type: '交互教程', path: 'mha-tensor-lab/mla.html' },
-      { id: 'mla-flow', title: 'MLA 张量与原理图', description: '并排理解展开路径与吸收路径，点击节点查看真实矩阵。', type: '数据流图', path: 'mha-tensor-lab/mla-flow.html' }
+      { id: 'mla', title: '原始 MLA：完整张量流与 KV Cache', description: '切换 Prefill 与 Decode，跟踪低秩投影、解耦 RoPE、主注意力与实际保存的 KV Cache。', type: '交互图解', path: 'mha-tensor-lab/mla-original.html' }
     ]
   },
   {

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原始 MLA：完整张量流与 KV Cache</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:#293648;font:15px/1.7 'Segoe UI','Microsoft YaHei',sans-serif}a{color:#345d88}header{padding:17px 4vw;background:white;border-bottom:1px solid #d9e0e8;display:flex;justify-content:space-between;gap:20px;font-size:13px}main{max-width:1500px;margin:auto;padding:28px 3vw 50px}h1{font-size:32px;line-height:1.4;margin:0 0 10px}h2{font-size:21px;margin:0 0 12px}p{margin:8px 0}.lead{color:#617083;max-width:1150px}.note{background:#edf3fa;border-left:3px solid #536986;padding:13px 18px;margin:18px 0}.controls{position:sticky;top:0;z-index:3;background:#f5f7fa;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #d9e0e8}select,button{font:inherit;background:white;border:1px solid #c7d0dd;border-radius:5px;padding:6px 10px}button{cursor:pointer}button[aria-pressed=true]{background:#344f73;color:white}a:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid #a48acb;outline-offset:3px}.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;padding:13px 0}.viewport{overflow:auto;max-height:85vh;background:white;border:1px solid #d9e0e8;border-radius:8px}.viewport svg{width:100%;min-width:1050px;display:block;margin:auto;height:auto}.node{cursor:pointer}.node:hover rect,.node:focus-visible rect{stroke-width:4}.detail{padding:20px;background:white;border:1px solid #d9e0e8;margin-top:16px;border-radius:8px}.detail code{font:14px Consolas,monospace;background:#edf0f5;padding:5px 9px;display:inline-block}.summary{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:28px;scroll-margin-top:85px}.summary section{border-top:2px solid #d9e0e8;padding-top:16px}.small{font-size:13px;color:#6b7888}.formula{font-family:Consolas,'Microsoft YaHei',monospace;overflow-wrap:anywhere}.sources{font-size:12px;color:#6b7888;margin-top:28px}.sources a{margin-right:20px}.cache{color:#247c69}.rope{color:#aa6a28}.attn{color:#7050a0}@media(max-width:900px){.summary{grid-template-columns:1fr}.controls{position:static}h1{font-size:26px}}@media print{header,.controls,.detail,.sources{display:none}.viewport{max-height:none;overflow:visible;border:0}.viewport svg{min-width:0}}
+</style><link rel="stylesheet" href="../assets/navigation.css">
+<script src="../assets/catalog.js?v=mla-original-20261031" defer></script>
+<script src="../assets/navigation.js?v=discussion-20261031" defer></script>
+</head><body data-lab-page="mla"><header><b>ATTENTION / 原始 MLA 整理版</b><nav><a href="dsa-on-mla.html">DSA</a>　<a href="swa-on-mla.html">SWA</a>　<a href="csa-v4.html">V4 CSA</a></nav></header><main>
+<h1>原始 MLA：压缩每个 token 的 KV，保留全部因果历史。</h1>
+<p class="lead">从底部 input 向上读。这里回到 V2 / V3 系列 MLA 的经典结构，采用显式展开 K/V 的画法。绿色标出实际保存的压缩缓存；橙色是 RoPE；紫色是主注意力。沿用你最初的 16 头教学尺寸，方便和旧图逐节点对照。</p>
+<div class="note"><b>本图的压缩是特征维度压缩：</b>每个 token 保存 512 维内容 latent + 64 维位置 Key。128 个 token 仍有 128 份缓存，不会像 CSA 那样变成 32 个条目。图中没有 Indexer、Top-k、SWA 窗口或 V4 attention sink。</div>
+<div class="controls"><button id="prefill" aria-pressed="true">① Prefill：一次输入 128 个 token</button><button id="decode" aria-pressed="false">② Decode：已有 128，再输入 1 个</button><label>图大小 <select id="zoom"><option value="fit">适应宽度</option><option value="1600">1600 px</option><option value="2000">原尺寸</option></select></label><a href="#notes">整理要点 ↓</a><a id="download" href="#" download="mla-original.svg">下载当前 SVG</a></div>
+<div class="legend"><span>蓝灰：投影 / 拆分 / 拼接</span><span class="cache">绿色：实际 KV Cache</span><span class="rope">橙色：位置旋转</span><span class="attn">紫色：分数 / softmax / 加权</span></div><p id="status" class="small"></p>
+<div class="viewport"><div id="diagram"></div></div><section class="detail" aria-live="polite"><h2 id="detail-title"></h2><code id="detail-shape"></code><p id="detail-body"></p></section>
+<div class="summary" id="notes"><section><h2>① 两条低秩路径，处理什么？</h2><p>Query：7168 → 1536 → 16×192。先降维得到 qr，再上投影生成各头 Q。KV：联合投影输出 576，拆成 512 维内容表示和 64 维位置 Key；512 维再上投影生成各头 K_nope 与 V。</p><p>这些权重是模型本身的可训练参数。“低秩”描述中间表示与因子化结构，不等于微调时额外加上的 LoRA adapter。原始架构的 Q 压缩与 KV 压缩也不承担同一种缓存作用。</p></section>
+<section><h2>② 两个 compressed_kv 名字，重新区分</h2><p>下方改名为 <b>kv_a_proj / 联合输出</b>：576 维，尚未处理。上方的 <b>compressed_kv</b> 指拆出的 512 维部分，经过 RMSNorm 后写入 C_cache。64 维 k_pe 从同一个 576 维输出拆出，经过 RoPE 后写入 Kᵣ_cache。</p><p>因此可以把最终缓存逻辑拼成 576 维，但它不是把联合投影刚算出来的那 576 维原样存下。两份缓存也可以分开存；绿色节点不是重复两套缓存。</p></section>
+<section><h2>③ 注意力：对应头相乘，再加权 V</h2><p class="formula">score[h,t,s] = (q_nope[h,t]·k_nope[h,s] + q_rope[h,t]·k_rope[s]) / √192</p><p>不同主头各自计算；Q 的 head 1 不与 K 的 head 2 做这次点积。对 s 轴应用因果 mask，再做 softmax。每行权重对该头的 V 加权，最后拼头、输出投影。</p><p>NoPE 表示不做 RoPE，仍然需要投影。K_rope 由所有主头共享；广播后的 16 头表示不需要在缓存中存 16 份。</p></section>
+<section><h2>④ 缓存到底有多大？</h2><p id="cache-size"></p><p>这里计算的是逻辑元素数，不含 dtype、量化 scale、padding、分页和运行时元数据。Q 不进入跨 token 的 KV Cache；原始 MLA 会保留历史各 token 的内容 latent 与位置 Key。</p></section>
+<section><h2>⑤ 为什么图上展开 K/V，缓存却只存 latent？</h2><p>展开图方便理解：K_nope=C·Wᵁᴷ，V=C·Wᵁⱽ。但高效解码可以重排线性计算，避免为历史 token 物化全部头的 K/V。</p><p class="formula">内容分数：(Q_nope·Wᵁᴷᵀ)·Cᵀ<br>头输出：(A·C)·Wᵁⱽ</p><p>每头将 Q 从 128 维映射到 latent 的 512 维，与 C_cache 点积；位置分数仍使用 RoPE 分支，缩放仍为 √192。A·C 得到 512 维后映射到 128 维 Value 输出。吸收的是每头上投影权重，不把 RMSNorm 或 RoPE 合并成固定线性矩阵。</p></section>
+<section><h2>⑥ 和刚才几张图怎么对应？</h2><p><b>本图 MLA：</b>压缩每个 token 的 KV 表示，主注意力看全部因果可见位置。<b>旧 DSA 图：</b>在 MLA 上用 Indexer 选择位置。<b>旧 SWA 图：</b>展示用窗口规则选位置的教学组合。</p><p><b>V4 CSA 图：</b>还加入序列压缩，并组合压缩 Top-k 与局部窗口；采用共享 K=V 与新的输出结构。因此它不是原始 MLA 这张图简单地再多画一个框。</p></section></div>
+<div class="sources"><a href="mla-original-prefill.svg" target="_blank">Prefill SVG 整图 ↗</a><a href="mla-original-prefill.png" target="_blank">Prefill PNG 整图 ↗</a><a href="mla-original-decode.svg" target="_blank">Decode SVG 整图 ↗</a><a href="mla-original-decode.png" target="_blank">Decode PNG 整图 ↗</a><p>教学参数：B=2，D=7168，H=16，q_rank=1536，KV latent=512，NoPE=128，RoPE=64，Value=128。H=16 沿用用户原图，不声称是完整发布模型的全局头数或某种固定 TP 配置。此图按常见实现合并投影并加入 RMSNorm；“原始”指未加稀疏选择的经典 MLA 机制，不代表逐项复刻 V2 发布配置。头优先布局：[B,H,token,feature]。省略长上下文额外缩放，标注基础 1/√192。</p><a href="https://arxiv.org/html/2405.04434v5#S2.SS1" target="_blank" rel="noreferrer">MLA 原论文（V2）</a><a href="https://github.com/deepseek-ai/DeepSeek-V3/blob/main/inference/model.py" target="_blank" rel="noreferrer">V3 官方实现</a></div>
+</main><script>
+const $=id=>document.getElementById(id),dims=(...a)=>'('+a.join(', ')+')',esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+let mode='prefill',selected='ccache',nodes=[],edges=[],blob;const B=2,H=16,D=7168,DC=512,DR=64,DN=128,DV=128;const nq=()=>mode==='prefill'?128:1,nk=()=>mode==='prefill'?128:129;
+const colors={base:'#536986',cache:'#247c69',rope:'#aa6a28',attn:'#7050a0'};
+function N(id,name,x,y,shape,body,kind='base',w=240){nodes.push({id,name,x,y,shape,body,kind,w,h:70})}
+function E(from,to,path,label='',x=0,y=0,kind='base'){edges.push({from,to,path,label,x,y,kind})}
+function build(){nodes=[];edges=[];const Q=nq(),L=nk();
+N('input','input',760,2450,dims(B,Q,D),'每条请求独立计算。Prefill 从空缓存开始输入 128 个 token；Decode 假设已缓存 128 个历史 token，本次只输入第 129 个 token。');
+N('qr','qr / query latent',210,2250,dims(B,Q,1536),'X × Wq_a，再 RMSNorm。矩阵形状 (7168,1536)，输出是低维查询表示；不进入跨 token 的 KV Cache。');
+N('q','q projection',210,2030,dims(B,Q,H*(DN+DR)),'qr × Wq_b，(1536,3072)。上投影到 16×192，然后拆头、调整轴顺序，并按最后一维分成 128+64。');
+N('qn','q_nope',70,1790,dims(B,H,Q,DN),'各主头的内容 Query。NoPE 表示这部分不做 RoPE；它已经经过了可学习的投影。');
+N('qrp','q_pe / rotated',370,1790,dims(B,H,Q,DR),'从 q 的每头 192 维中拆出 64 维，用各 query 的原始 token 位置施加 RoPE。此节点显示旋转后的结果。','rope');
+N('qs','q_states',210,1510,dims(B,H,Q,DN+DR),'沿最后一维拼接 q_nope 与旋转后的 q_pe，得到每头 192 维的 Query。');
+N('joint','kv_a_proj / 联合输出',1030,2250,dims(B,Q,DC+DR),'X × Wkv_a，矩阵形状 (7168,576)。输出沿最后一维拆为 512 维内容 latent 和 64 维位置 Key。它们来自不同的权重列；k_pe 不是由 512 维 latent 生成。','base',290);
+N('c','compressed_kv / norm',1140,2030,dims(B,Q,DC),'取联合输出的 512 维部分，再做 RMSNorm。每个输入 token 得到一份 C，用于生成所有头的内容 K 和 V。','base',280);
+N('krraw','k_pe / raw',740,2030,dims(B,Q,DR),'取联合输出的另外 64 维。此时还没有 RoPE；后续按原 token 位置旋转，再写入位置 Key 缓存。','rope');
+N('kr','k_pe / rotated',740,1830,dims(B,Q,DR),'按原 token 位置做 RoPE 后的 64 维位置 Key。它不需要从 512 维 compressed_kv 上投影得到。','rope');
+N('ccache','C_cache：内容缓存',1140,1830,dims(B,L,DC),'保存经过 RMSNorm 的 512 维内容 latent。'+(mode==='prefill'?'当前 128 个 token 一次写入空缓存。':'旧缓存 (2,128,512) 与新结果 (2,1,512) 沿 token 轴追加，成为 (2,129,512)。')+' 此后可展开各头 K/V，也可直接在 latent 空间计算。','cache',280);
+N('rcache','Kᵣ_cache：位置缓存',740,1630,dims(B,L,DR),'保存经过 RoPE 的位置 Key。'+(mode==='prefill'?'当前有 128 份 64 维向量。':'旧缓存 (2,128,64) 追加新结果 (2,1,64)，成为 (2,129,64)。')+' 所有主头共享，不按 16 个头复制缓存。','cache',280);
+N('kv','kv / up-projection',1140,1630,dims(B,H,L,DN+DV),'读取全部可用 C_cache，上投影：512→16×256=4096，然后 reshape / transpose。每头 256 维拆成 K_nope 128 与 Value 128。这是用于解释语义的展开计算。','base',280);
+N('krheads','k_pe / broadcast',740,1410,dims(B,H,L,DR),'Kᵣ_cache 增加主头轴，逻辑广播为 16 个头；绿色缓存的真实形状仍然没有头轴。','rope',250);
+N('kn','k_nope',1070,1410,dims(B,H,L,DN),'从 kv 的每头 256 维切出内容 Key 的 128 维；不做 RoPE。');
+N('v','value_states',1380,1410,dims(B,H,L,DV),'从 kv 的另一半切出的 Value。各头有自己的 Value 上投影；这里 K_nope 与 V 不是 V4 CSA 那种同一个共享 K=V 向量。');
+N('ks','k_states',900,1190,dims(B,H,L,DN+DR),'拼接各头 k_nope 与共享的、已经旋转的 k_pe，得到完整的 192 维 Key。');
+N('scores','attn_scores',500,970,dims(B,H,Q,L),'对应主头的 Q @ Kᵀ / √192。等价于内容点积加位置点积，再统一缩放。最后两轴分别是本次 query 数 Q 和可读 Key 数 L。','attn',260);
+N('masked','causal_masked_scores',500,760,dims(B,H,Q,L),'屏蔽未来 token：Prefill 中每行只能看自身及之前位置；Decode 的新 query 位于 128，可看本请求的全部 129 个位置。未施加 Top-k 或滑动窗口裁剪。','attn',290);
+N('weights','attn_weights',500,550,dims(B,H,Q,L),'沿 Key 轴做 softmax。每个主头、每个 query 的有效权重之和为 1；没有 V4 的可学习 sink。','attn',260);
+N('out','head_output',900,420,dims(B,H,Q,DV),'对 value_states 加权求和：A @ V。Key 轴 L 被求和，输出保留本次 query 轴 Q 和每头 Value 的 128 维。','attn');
+N('concat','concat_heads',900,240,dims(B,Q,H*DV),'将 [B,H,Q,128] 转为 [B,Q,H,128] 并合并最后两轴，得到 16×128=2048。');
+N('final','output',900,60,dims(B,Q,D),'拼头结果乘输出矩阵 Wo，(2048,7168)，回到 hidden size 7168。只输出当前这一批 query 的表示。');
+E('input','qr','M790 2450 C790 2360 330 2410 330 2320','Wq_a + RMSNorm',440,2400);
+E('qr','q','M330 2250 L330 2100','Wq_b：1536 → 3072',390,2190);
+E('q','qn','M260 2030 C260 1920 190 1960 190 1860','reshape / split 128',150,1930);
+E('q','qrp','M390 2030 C390 1920 490 1960 490 1860','split 64 + RoPE',510,1930,'rope');
+E('qn','qs','M190 1790 C190 1650 270 1680 270 1580');E('qrp','qs','M490 1790 C490 1660 390 1680 390 1580','concat：128 + 64',480,1680);
+E('input','joint','M930 2450 C930 2380 1175 2410 1175 2320','Wkv_a：7168 → 576',1220,2400);
+E('joint','c','M1240 2250 C1240 2170 1280 2200 1280 2100','split 512 + RMSNorm',1400,2180,'cache');
+E('joint','krraw','M1080 2250 C1080 2170 860 2200 860 2100','split 64',890,2180,'rope');
+E('krraw','kr','M860 2030 L860 1900','RoPE（原 token 位置）',860,1980,'rope');
+E('c','ccache','M1280 2030 L1280 1900',mode==='prefill'?'写入缓存':'追加 1 个 token',1400,1970,'cache');
+E('kr','rcache','M860 1830 L860 1700',mode==='prefill'?'写入缓存':'追加 1 个 token',900,1770,'cache');
+E('ccache','kv','M1280 1830 L1280 1700','读全部缓存 / Wkv_b / 拆头',1410,1770);
+E('rcache','krheads','M880 1630 L865 1480','广播到主头（不复制缓存）',860,1550,'rope');
+E('kv','kn','M1210 1630 C1210 1550 1190 1570 1190 1480','split 128',1150,1560);E('kv','v','M1350 1630 C1350 1550 1500 1570 1500 1480','split 128',1500,1560);
+E('krheads','ks','M865 1410 C865 1330 950 1340 950 1260');E('kn','ks','M1190 1410 C1190 1330 1080 1340 1080 1260','concat：128 + 64',1200,1320);
+E('qs','scores','M330 1510 C330 1290 570 1250 570 1040','QKᵀ / √192',390,1190,'attn');E('ks','scores','M1020 1190 C1020 1100 700 1140 700 1040');
+E('scores','masked','M630 970 L630 830','加因果 mask',790,910,'attn');E('masked','weights','M630 760 L630 620','softmax（Key 轴）',800,700,'attn');
+E('weights','out','M760 585 C830 585 830 455 900 455','A',830,540,'attn');E('v','out','M1500 1410 C1640 1200 1570 455 1140 455','V：只对 Key 轴加权求和',1460,900,'attn');
+E('out','concat','M1020 420 L1020 310','transpose + reshape',1190,375);E('concat','final','M1020 240 L1020 130','Wo：2048 → 7168',1190,195);
+}
+function text(x,y,s,size=20,c='#293648'){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+size+'" fill="'+c+'">'+esc(s)+'</text>'}
+function detail(){const a=nodes.find(n=>n.id===selected)||nodes[0];$('detail-title').textContent=a.name;$('detail-shape').textContent=a.shape;$('detail-body').textContent=a.body}
+function render(){build();detail();$('prefill').setAttribute('aria-pressed',mode==='prefill');$('decode').setAttribute('aria-pressed',mode==='decode');$('status').textContent='B=2；主头 H=16；本次 query 数 Q='+nq()+'；含本次 token 的 Key / 缓存长度 L='+nk()+'。注意力形状 '+dims(B,H,nq(),nk())+'。绿色两个节点是本层的两份缓存。';$('cache-size').textContent='当前每层：C_cache '+dims(B,nk(),DC)+' + Kᵣ_cache '+dims(B,nk(),DR)+'。可逻辑拼成 '+dims(B,nk(),DC+DR)+'，共 '+(B*nk()*(DC+DR)).toLocaleString()+' 个元素。Prefill 和 Decode 都是一条 token 对应一份 576 维信息，token 轴没有被压缩。';
+let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000 2660" role="group" aria-label="原始 MLA 张量结构，从下往上读取，绿色表示压缩 KV Cache" style="font-family:Segoe UI,Microsoft YaHei,sans-serif"><defs>';
+for(const [key,c]of Object.entries(colors))svg+='<marker id="'+key+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="'+c+'"/></marker>';
+svg+='</defs><rect width="2000" height="2660" fill="white"/>'+text(350,70,'原始 MLA · '+(mode==='prefill'?'Prefill':'Decode'),28,colors.base)+text(350,115,'B=2 · H=16 · Q='+nq()+' · L='+nk(),21,'#6b7888');
+svg+=text(1640,200,'实际缓存只有两部分',24,colors.cache)+text(1640,245,'归一化内容 latent：512',21,colors.cache)+text(1640,285,'RoPE 后的位置 Key：64',21,colors.cache)+text(1640,350,'每个 token 共 576 维',23,colors.cache)+text(1640,395,'token 数不减少；主头共享缓存',20,'#6b7888');
+svg+=text(1700,2050,'576 → 拆成 512 + 64',23,colors.base)+text(1700,2100,'不是 512 → 再生成 64',19,'#6b7888')+text(1700,2190,'NoPE 不旋转，但要投影',21,colors.base);
+for(const e of edges){const c=colors[e.kind];svg+='<path d="'+e.path+'" fill="none" stroke="white" stroke-width="7"/><path d="'+e.path+'" fill="none" stroke="'+c+'" stroke-width="2" marker-end="url(#'+e.kind+')"/>';if(e.label)svg+='<text x="'+e.x+'" y="'+e.y+'" text-anchor="middle" font-size="17" fill="'+c+'" stroke="white" stroke-width="7" paint-order="stroke">'+esc(e.label)+'</text>'}
+for(const n of nodes)svg+='<g class="node" data-node="'+n.id+'" role="button" tabindex="0" aria-label="'+esc(n.name+' '+n.shape)+'"><rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="70" rx="14" fill="'+({base:'white',cache:'#edf9f3',rope:'#fff7ed',attn:'#f5f1fb'}[n.kind])+'" stroke="'+colors[n.kind]+'" stroke-width="1.7"/>'+text(n.x+n.w/2,n.y+42,n.name,20)+'<text x="'+(n.x+n.w/2)+'" y="'+(n.y+103)+'" text-anchor="middle" font-size="20" fill="'+colors[n.kind]+'" stroke="white" stroke-width="8" paint-order="stroke">'+esc(n.shape)+'</text></g>';
+svg+=text(950,2620,'从这里向上读 ↑  ｜  形状为逻辑张量；展开 K/V 是教学路径，推理可使用矩阵吸收。',20,'#6b7888')+'</svg>';$('diagram').innerHTML=svg;document.querySelectorAll('[data-node]').forEach(el=>{const go=()=>{selected=el.dataset.node;detail()};el.onclick=go;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});if(blob)URL.revokeObjectURL(blob);blob=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));$('download').href=blob;zoom();}
+function zoom(){const el=document.querySelector('#diagram svg');if(el)el.style.width=$('zoom').value==='fit'?'100%':$('zoom').value+'px'}
+$('prefill').onclick=()=>{mode='prefill';render()};$('decode').onclick=()=>{mode='decode';render()};$('zoom').onchange=zoom;render();
+</script></body></html>
