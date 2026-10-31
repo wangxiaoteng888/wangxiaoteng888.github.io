@@ -19,9 +19,6 @@ window.TENSOR_LAB_CATALOG = [
     id: 'dsa', number: '03', title: 'DSA', subtitle: '稀疏注意力',
     description: '接入 Indexer 与 Top-k：先选位置，再计算主注意力。',
     pages: [
-      { id: 'dsa', title: 'DSA 数值实验室', description: '用具体数字区分索引分数、Top-k 位置与主注意力权重。', type: '交互教程', path: 'mha-tensor-lab/dsa.html' },
-      { id: 'dsa-flow', title: 'DSA 单 query 数据流', description: '跟踪一个 query：选出候选、读取缓存，直到得到输出。', type: '数据流图', path: 'mha-tensor-lab/dsa-flow.html' },
-      { id: 'dsa-prefill', title: 'DSA 多 token Prefill', description: '一次输入五个 token，看每个 query 怎样独立选择位置。', type: '交互图解', path: 'mha-tensor-lab/dsa-prefill.html' },
       { id: 'dsa-on-mla', title: '在 MLA 图上增加 DSA', description: '沿用熟悉的 MLA 主链，对照 Top-k mask 与只计算选中列。', type: '对照图解', path: 'mha-tensor-lab/dsa-on-mla.html' }
     ]
   },
