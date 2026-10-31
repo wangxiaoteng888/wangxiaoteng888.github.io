@@ -35,5 +35,12 @@ window.TENSOR_LAB_CATALOG = [
     pages: [
       { id: 'csa-v4', title: 'V4 CSA：DSA 与 SWA 如何汇合', description: '跟着单个 query，看压缩条目 Top-k 与窗口 KV 如何合并并统一归一化。', type: '交互图解', path: 'mha-tensor-lab/csa-v4.html' }
     ]
+  },
+  {
+    id: 'kv-cache', number: '06', title: 'KV Cache 布局', subtitle: '具体模型',
+    description: '按模型查看底层缓存，从逻辑分组追到物理页、张量视图与字节偏移。',
+    pages: [
+      { id: 'deepseek-v41-kv-cache', title: 'DeepSeek V4.1 Flash', description: '切换存储路径，追踪模型层的 KV 共享、物理页复用与页内元素寻址。', type: '内存布局实验台', path: 'kv-cache/deepseek-v41-kv-cache.html' }
+    ]
   }
 ];

@@ -40,6 +40,10 @@
     "csa-v4": {
       "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/10",
       "number": 10
+    },
+    "deepseek-v41-kv-cache": {
+      "number": 11,
+      "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/11"
     }
   }
 }
