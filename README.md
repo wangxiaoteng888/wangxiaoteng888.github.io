@@ -16,7 +16,7 @@ DSA 章节统一使用 `mha-tensor-lab/dsa-on-mla.html`；旧的 `dsa.html`、`d
 - `assets/discussions.js`：页面底部讨论区，从 GitHub 读取公开留言。
 - `assets/discussions.json`：每个页面与 GitHub Issue 讨论帖的对应关系。
 - `mha-tensor-lab/`：MHA、MLA、DSA、SWA、CSA 教程及 SVG、PNG 图。
-- `kv-cache/`：具体模型的 KV Cache 底层内存布局；当前收录 DeepSeek V4.1 Flash。
+- `kv-cache/`：具体模型的 KV Cache 底层内存布局；当前收录 DeepSeek V4.1 Flash 和 Qwen3.8老方案六区设计。
 
 ## 增加一个网页
 

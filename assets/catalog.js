@@ -40,7 +40,8 @@ window.TENSOR_LAB_CATALOG = [
     id: 'kv-cache', number: '06', title: 'KV Cache 布局', subtitle: '具体模型',
     description: '按模型查看底层缓存，从逻辑分组追到物理页、张量视图与字节偏移。',
     pages: [
-      { id: 'deepseek-v41-kv-cache', title: 'DeepSeek V4.1 Flash', description: '切换存储路径，追踪模型层的 KV 共享、物理页复用与页内元素寻址。', type: '内存布局实验台', path: 'kv-cache/deepseek-v41-kv-cache.html' }
+      { id: 'deepseek-v41-kv-cache', title: 'DeepSeek V4.1 Flash', description: '切换存储路径，追踪模型层的 KV 共享、物理页复用与页内元素寻址。', type: '内存布局实验台', path: 'kv-cache/deepseek-v41-kv-cache.html' },
+      { id: 'qwen38-six-region', title: 'Qwen3.8老方案六区设计', description: '从 group、block table 和 layer slot 定位六区地址，演示 QSA 与 GDN 对 R2 的复用。', type: '内存布局实验台', path: 'kv-cache/qwen38-six-region.html' }
     ]
   }
 ];
