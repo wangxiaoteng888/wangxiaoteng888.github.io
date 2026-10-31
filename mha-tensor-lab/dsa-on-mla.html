@@ -4,7 +4,7 @@
 </style>
 <link rel="stylesheet" href="../assets/navigation.css">
 <script src="../assets/catalog.js" defer></script>
-<script src="../assets/navigation.js" defer></script>
+<script src="../assets/navigation.js?v=discussion-20261031" defer></script>
 </head><body data-lab-page="dsa-on-mla"><header><b>ATTENTION / 在原 MLA 图上增加 DSA</b><nav><a href="mla-flow.html">MLA</a>　<a href="dsa-prefill.html#topk-attention">Top-k 数值对照</a></nav></header><main>
 <h1>沿用你已经理解的 MLA 图，只把 DSA 接上去。</h1><p class="lead"><b>从底部 input 向上读。</b>保留你的 q、q_nope、q_pe、compressed_kv、k_pe、kv、k_states、value_states 和 output。蓝灰色是原 MLA 主链，橙色是 DSA 新增的选位置分支。点节点可以看说明；想看整张图，可用下方 SVG / PNG 链接。</p>
 <div class="controls"><button id="masked" aria-pressed="true">① 在原图上加 Top-k mask</button><button id="sparse" aria-pressed="false">② 对照：只计算选中列</button><label>k <select id="k" aria-label="Top-k 数量"><option>16</option><option selected>32</option><option>64</option><option>128</option><option>2048</option></select></label><label>图大小 <select id="zoom" aria-label="图大小"><option value="fit">适应宽度</option><option value="1500">1500 px</option><option value="1960">原尺寸</option></select></label><a class="dl" id="download" href="#" download="dsa-on-mla.svg">下载当前 SVG ↓</a></div>

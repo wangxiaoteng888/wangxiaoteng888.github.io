@@ -7,7 +7,7 @@
 </style>
 <link rel="stylesheet" href="../assets/navigation.css">
 <script src="../assets/catalog.js" defer></script>
-<script src="../assets/navigation.js" defer></script>
+<script src="../assets/navigation.js?v=discussion-20261031" defer></script>
 </head><body data-lab-page="dsa-prefill">
 <header><b>ATTENTION / 数据流图解</b><nav><a href="mla-flow.html">MLA 张量与原理新图 →</a><a href="dsa-flow.html">单 query 数据流</a><a href="dsa.html">DSA 数值实验室</a></nav></header>
 <main><div class="eyebrow">DSA / PREFILL / 5 TOKENS AT ONCE</div><h1>一次输入 5 个 token，<br>就是 5 个 query 各自选位置。</h1><p class="lead">本例<strong>没有旧缓存</strong>，一次输入「我 / 昨天 / 在 / 图书馆 / 学习」。在这一层里，5 行可以一起做投影和注意力计算；因果遮罩保证每行只能读自己及之前的位置。</p>

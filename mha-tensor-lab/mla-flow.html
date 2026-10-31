@@ -4,7 +4,7 @@
 </style>
 <link rel="stylesheet" href="../assets/navigation.css">
 <script src="../assets/catalog.js" defer></script>
-<script src="../assets/navigation.js" defer></script>
+<script src="../assets/navigation.js?v=discussion-20261031" defer></script>
 </head><body data-lab-page="mla-flow">
 <header><b>ATTENTION / MLA 深入图解</b><nav><a href="mla.html">原 MLA 实验室</a><a href="dsa-prefill.html">DSA 对照</a></nav></header>
 <main><div class="eyebrow">MULTI-HEAD LATENT ATTENTION</div><h1>每个 token 只存一份压缩内容，<br>各个头仍然能算自己的注意力。</h1><p class="lead">MLA 的核心是<b>减少每个 token 的 KV 存储</b>：把各个头的 K、V 内容建立在共享向量 C 上，再利用矩阵乘法的结合律，直接在压缩空间计算。这里先画直观的展开路径，再画等价的吸收路径。</p>

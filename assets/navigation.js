@@ -95,6 +95,6 @@
   window.addEventListener('pageshow', () => setOpen(false, false));
   if (currentPage) document.title = currentPage.title.includes('张量实验室') ? currentPage.title : currentPage.title + ' · 张量实验室';
   const discussions = document.createElement('script');
-  discussions.src = href('assets/discussions.js');
+  discussions.src = href('assets/discussions.js?v=20261031');
   document.head.append(discussions);
 })();
