@@ -36,7 +36,7 @@
       nav{overflow-y:auto;flex:1;scrollbar-width:thin;padding:3px 2px 18px}.overview{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:5px;font-weight:600;margin:0 0 30px}.overview-icon{font-size:18px;line-height:1}.overview:hover,.page-link:hover{background:#edf1e8}
       [aria-current=page]{color:var(--green);background:#e4eee3!important}.nav-group{margin-bottom:27px}.nav-group h2{font-size:12px;margin:0 12px 10px;font-weight:700;display:flex;align-items:center;gap:7px}.nav-group h2>span{font:10px Consolas,monospace;color:#8d988e;margin-right:2px}.nav-group small{font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.02em}
       .page-link{display:flex;align-items:center;gap:9px;min-height:39px;margin:3px 0;padding:10px 12px;border-radius:5px;font-size:12px;line-height:1.4}.page-link[aria-current]{font-weight:650}.page-dot{width:4px;height:4px;border-radius:50%;background:#b9c5b7;flex-shrink:0}.page-link[aria-current] .page-dot{background:var(--green)}.current-mark{margin-left:auto;color:var(--green)}
-      .sidebar-footer{border-top:1px solid var(--line);padding:17px 12px 0}.footer-caption{font-size:11px;color:var(--muted);margin:0 0 10px}.repo-link{display:flex;align-items:center;justify-content:space-between;font:12px Consolas,monospace;color:#56695e}.repo-link:hover{color:var(--green)}
+      .sidebar-footer{border-top:1px solid var(--line);padding:17px 12px 0}.footer-caption{font-size:11px;color:var(--muted);margin:0 0 10px}.discussion-link{display:flex;justify-content:space-between;font-size:12px;color:var(--green);padding-bottom:14px}.discussion-link:hover{text-decoration:underline}.repo-link{display:flex;align-items:center;justify-content:space-between;font:12px Consolas,monospace;color:#56695e}.repo-link:hover{color:var(--green)}
       .mobile-bar,.backdrop,.close{display:none}
       @media(max-width:980px){
         .mobile-bar{position:fixed;inset:0 0 auto;height:58px;background:#fafbf6;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:45}.mobile-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}.mobile-brand .logo{width:21px;height:21px;gap:3px}.menu-button{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #d3ddcf;border-radius:5px;background:transparent;color:var(--green);font-size:12px}
@@ -51,7 +51,7 @@
       <button class="close" aria-label="关闭学习目录">×</button>
       <a class="brand" href="${escape(href(''))}">${logo}<span><strong>张量实验室</strong><small>ATTENTION / TENSOR LAB</small></span></a>
       <nav aria-label="学习目录"><a class="overview" href="${escape(href(''))}"${current === 'home' ? ' aria-current="page"' : ''}><span class="overview-icon" aria-hidden="true">⊞</span> 实验室首页</a>${groups}</nav>
-      <div class="sidebar-footer"><p class="footer-caption">从一个张量开始，理解每一步。</p><a class="repo-link" href="https://github.com/wangxiaoteng888/wangxiaoteng888.github.io" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></div>
+      <div class="sidebar-footer"><a class="discussion-link" href="#discussion">本页讨论 <span aria-hidden="true">↓</span></a><p class="footer-caption">从一个张量开始，理解每一步。</p><a class="repo-link" href="https://github.com/wangxiaoteng888/wangxiaoteng888.github.io" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></div>
     </aside>`;
   document.body.insertBefore(host, content);
   const sidebar = shadow.querySelector('.sidebar');
@@ -79,6 +79,7 @@
   menu.addEventListener('click', () => setOpen(true));
   close.addEventListener('click', () => setOpen(false));
   backdrop.addEventListener('click', () => setOpen(false));
+  shadow.querySelector('.discussion-link').addEventListener('click', () => setOpen(false, false));
   mobile.addEventListener('change', () => setOpen(false, false));
   shadow.addEventListener('keydown', event => {
     if (!open) return;
@@ -93,4 +94,7 @@
   setOpen(false, false);
   window.addEventListener('pageshow', () => setOpen(false, false));
   if (currentPage) document.title = currentPage.title.includes('张量实验室') ? currentPage.title : currentPage.title + ' · 张量实验室';
+  const discussions = document.createElement('script');
+  discussions.src = href('assets/discussions.js');
+  document.head.append(discussions);
 })();
