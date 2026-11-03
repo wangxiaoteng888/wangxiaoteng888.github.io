@@ -2,7 +2,7 @@
 
 网站：<https://wangxiaoteng888.github.io/>
 
-用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA、DSA、SWA 与 CSA，并按具体模型查看 KV Cache 底层布局。
+用可交互的矩阵、张量形状和数据流图，一步一步理解 MHA、MLA、DSA、SWA、CSA 与 Mamba，并按具体模型查看 KV Cache 底层布局。
 首页提供完整目录；每个教程都带有相同的侧边栏，手机上可以通过顶部「目录」打开。
 MLA 章节统一使用 `mha-tensor-lab/mla-original.html`；旧的 `mla.html` 和 `mla-flow.html` 自动跳转到它。该页面沿用 `mla` 页面 ID 与原有 MLA 讨论区。
 DSA 章节统一使用 `mha-tensor-lab/dsa-on-mla.html`；旧的 `dsa.html`、`dsa-flow.html` 和 `dsa-prefill.html` 自动跳转到它。该页面继续使用原有 `dsa-on-mla` 讨论区。
@@ -15,7 +15,7 @@ DSA 章节统一使用 `mha-tensor-lab/dsa-on-mla.html`；旧的 `dsa.html`、`d
 - `assets/home.js`、`assets/home.css`：首页目录与样式。
 - `assets/discussions.js`：页面底部讨论区，从 GitHub 读取公开留言。
 - `assets/discussions.json`：每个页面与 GitHub Issue 讨论帖的对应关系。
-- `mha-tensor-lab/`：MHA、MLA、DSA、SWA、CSA 教程及 SVG、PNG 图。
+- `mha-tensor-lab/`：注意力机制与 Mamba 状态空间模型教程，以及 SVG、PNG 图。
 - `kv-cache/`：具体模型的 KV Cache 底层内存布局；当前收录 DeepSeek V4.1 Flash 和 Qwen3.8老方案六区设计。
 
 ## 增加一个网页

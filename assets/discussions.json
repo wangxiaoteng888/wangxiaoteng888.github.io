@@ -48,6 +48,10 @@
     "qwen38-six-region": {
       "number": 12,
       "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/12"
+    },
+    "mamba-original": {
+      "number": 13,
+      "url": "https://github.com/wangxiaoteng888/wangxiaoteng888.github.io/issues/13"
     }
   }
 }
